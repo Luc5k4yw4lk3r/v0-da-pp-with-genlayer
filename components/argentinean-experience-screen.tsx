@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Loader2, Upload, X, ImageIcon } from "lucide-react"
 import type { LeaderboardEntry } from "@/lib/redis"
 import Leaderboard from "./leaderboard"
@@ -348,6 +349,7 @@ export default function ArgentineanExperienceScreen() {
                       rows={4}
                       placeholder="Ej: Tomando mate con amigos en la costanera después del partido."
                       required
+                      readOnly={true}
                     />
                   </div>
 
@@ -361,6 +363,7 @@ export default function ArgentineanExperienceScreen() {
                       value={tagsInput}
                       onChange={(e) => setTagsInput(e.target.value)}
                       placeholder="Ej: sports, food, touristic"
+                      readOnly={true}
                     />
                     <p className="mt-1 text-xs text-muted-foreground">
                       Tags sugeridos: food, sports, customs, touristic, famous_people, cultural_shocks,
@@ -472,63 +475,69 @@ export default function ArgentineanExperienceScreen() {
             )}
 
             {/* Examples Section */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Ejemplos</CardTitle>
-                <CardDescription>Haz clic en un ejemplo para cargarlo en el formulario</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <Button
-                    onClick={() =>
-                      loadExample("Tomando mate con amigos en la costanera después del partido.", ["sports", "food"])
-                    }
-                    variant="outline"
-                    className="w-full justify-start text-left"
-                  >
-                    <span className="font-medium">Ejemplo 1:</span>
-                    <span className="ml-2 text-muted-foreground">
-                      Tomando mate con amigos en la costanera después del partido.
-                    </span>
-                  </Button>
-                  <Button
-                    onClick={() =>
-                      loadExample(
-                        "Joven con camiseta de Boca Juniors en una tribuna de La Bombonera durante un partido de fútbol.",
-                        ["sports", "touristic"],
-                      )
-                    }
-                    variant="outline"
-                    className="w-full justify-start text-left"
-                  >
-                    <span className="font-medium">Ejemplo 2:</span>
-                    <span className="ml-2 text-muted-foreground">
-                      Joven con camiseta de Boca Juniors en La Bombonera.
-                    </span>
-                  </Button>
-                  <Button
-                    onClick={() =>
-                      loadExample("Comiendo asado con familia en un domingo de verano.", ["food", "customs"])
-                    }
-                    variant="outline"
-                    className="w-full justify-start text-left"
-                  >
-                    <span className="font-medium">Ejemplo 3:</span>
-                    <span className="ml-2 text-muted-foreground">
-                      Comiendo asado con familia en un domingo de verano.
-                    </span>
-                  </Button>
-                  <Button
-                    onClick={() => loadExample("Tomando café en un coworking de Berlín.", ["work"])}
-                    variant="outline"
-                    className="w-full justify-start text-left"
-                  >
-                    <span className="font-medium">Ejemplo 4:</span>
-                    <span className="ml-2 text-muted-foreground">Tomando café en un coworking de Berlín.</span>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+            <Accordion type="single" collapsible className="w-full">
+              <AccordionItem value="examples" className="border rounded-lg">
+                <AccordionTrigger className="px-6 hover:no-underline">
+                  <div className="text-left">
+                    <h3 className="text-lg font-semibold">Ejemplos</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Haz clic en un ejemplo para cargarlo en el formulario
+                    </p>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="px-6 pb-6">
+                  <div className="space-y-2">
+                    <Button
+                      onClick={() =>
+                        loadExample("Tomando mate con amigos en la costanera después del partido.", ["sports", "food"])
+                      }
+                      variant="outline"
+                      className="w-full justify-start text-left"
+                    >
+                      <span className="font-medium">Ejemplo 1:</span>
+                      <span className="ml-2 text-muted-foreground">
+                        Tomando mate con amigos en la costanera después del partido.
+                      </span>
+                    </Button>
+                    <Button
+                      onClick={() =>
+                        loadExample(
+                          "Joven con camiseta de Boca Juniors en una tribuna de La Bombonera durante un partido de fútbol.",
+                          ["sports", "touristic"],
+                        )
+                      }
+                      variant="outline"
+                      className="w-full justify-start text-left"
+                    >
+                      <span className="font-medium">Ejemplo 2:</span>
+                      <span className="ml-2 text-muted-foreground">
+                        Joven con camiseta de Boca Juniors en La Bombonera.
+                      </span>
+                    </Button>
+                    <Button
+                      onClick={() =>
+                        loadExample("Comiendo asado con familia en un domingo de verano.", ["food", "customs"])
+                      }
+                      variant="outline"
+                      className="w-full justify-start text-left"
+                    >
+                      <span className="font-medium">Ejemplo 3:</span>
+                      <span className="ml-2 text-muted-foreground">
+                        Comiendo asado con familia en un domingo de verano.
+                      </span>
+                    </Button>
+                    <Button
+                      onClick={() => loadExample("Tomando café en un coworking de Berlín.", ["work"])}
+                      variant="outline"
+                      className="w-full justify-start text-left"
+                    >
+                      <span className="font-medium">Ejemplo 4:</span>
+                      <span className="ml-2 text-muted-foreground">Tomando café en un coworking de Berlín.</span>
+                    </Button>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
           </div>
 
           <div>
