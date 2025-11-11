@@ -8,15 +8,15 @@ import type { LeaderboardEntry } from "@/lib/redis"
 import { TRACKS } from "@/lib/redis"
 import { useTranslations } from "@/lib/i18n"
 
-export default function Leaderboard() {
+interface LeaderboardProps {
+  onRefreshReady?: (refreshFn: () => void) => void
+}
+
+export default function Leaderboard({ onRefreshReady }: LeaderboardProps) {
   const t = useTranslations()
 
   const [leaderboards, setLeaderboards] = useState<Record<string, LeaderboardEntry[]>>({})
   const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    fetchLeaderboards()
-  }, [])
 
   const fetchLeaderboards = async () => {
     try {
@@ -29,6 +29,13 @@ export default function Leaderboard() {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    fetchLeaderboards()
+    if (onRefreshReady) {
+      onRefreshReady(fetchLeaderboards)
+    }
+  }, [])
 
   const getRankIcon = (rank: number) => {
     switch (rank) {

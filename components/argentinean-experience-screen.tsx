@@ -208,6 +208,11 @@ export default function ArgentineanExperienceScreen() {
       }
 
       console.log("[v0] Auto-save completed successfully")
+
+      if (refreshLeaderboard) {
+        console.log("[v0] Refreshing leaderboard...")
+        refreshLeaderboard()
+      }
     } catch (err) {
       console.error("[v0] Error auto-saving to leaderboard:", err)
     }
@@ -253,6 +258,8 @@ export default function ArgentineanExperienceScreen() {
     if (score >= 21) return t.scoreRanges.mediumLow
     return t.scoreRanges.low
   }
+
+  const [refreshLeaderboard, setRefreshLeaderboard] = useState<(() => void) | null>(null)
 
   return (
     <div className="min-h-screen bg-background">
@@ -538,7 +545,7 @@ export default function ArgentineanExperienceScreen() {
           </div>
 
           <div>
-            <Leaderboard />
+            <Leaderboard onRefreshReady={setRefreshLeaderboard} />
           </div>
         </div>
       </main>
