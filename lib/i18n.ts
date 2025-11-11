@@ -3,7 +3,7 @@
 export const translations = {
   es: {
     // Header
-    title: "Proof of Argentinean Experience",
+    title: "Proof of Che",
     subtitle: "Evalúa qué tan argentina es tu experiencia usando inteligencia artificial",
 
     // Form
@@ -73,7 +73,7 @@ export const translations = {
   },
   en: {
     // Header
-    title: "Proof of Argentinean Experience",
+    title: "Proof of Che",
     subtitle: "Evaluate how Argentinean your experience is using artificial intelligence",
 
     // Form

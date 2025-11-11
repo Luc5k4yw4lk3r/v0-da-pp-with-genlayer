@@ -13,6 +13,7 @@ import { Loader2, Upload, X, ImageIcon } from "lucide-react"
 import type { LeaderboardEntry } from "@/lib/redis"
 import Leaderboard from "./leaderboard"
 import { useTranslations } from "@/lib/i18n"
+import Image from "next/image"
 
 const contractAddress = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || "0xA3E6713d0E67002d3C707e64D8E41530385F6CFB"
 
@@ -265,6 +266,9 @@ export default function ArgentineanExperienceScreen() {
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-card">
         <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+          <div className="flex items-center gap-4 mb-4">
+            <Image src="/logo.png" alt="Proof of Che Logo" width={120} height={60} className="h-16 w-auto" priority />
+          </div>
           <h1 className="text-4xl font-bold text-foreground">{t.title}</h1>
           <p className="mt-2 text-muted-foreground">{t.subtitle}</p>
         </div>
