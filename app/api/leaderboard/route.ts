@@ -50,10 +50,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(allLeaderboards || {})
     }
   } catch (error: any) {
-    console.error("[v0] Error getting leaderboard:", error)
+    console.error("[v0] Error in GET /api/leaderboard:", error)
     return NextResponse.json(
       {
-        error: "Failed to get leaderboard",
+        error: "Failed to fetch leaderboard",
         message: error?.message || "Unknown error",
         details: process.env.NODE_ENV === "development" ? error?.stack : undefined,
       },

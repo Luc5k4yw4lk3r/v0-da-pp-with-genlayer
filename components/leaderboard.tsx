@@ -20,11 +20,28 @@ export default function Leaderboard({ onRefreshReady }: LeaderboardProps) {
 
   const fetchLeaderboards = async () => {
     try {
+      console.log("[v0] Fetching leaderboards...")
       const response = await fetch("/api/leaderboard")
+
+      if (!response.ok) {
+        console.error("[v0] API returned error:", response.status, response.statusText)
+        // Try to get error message
+        const text = await response.text()
+        console.error("[v0] Error response:", text)
+        throw new Error(`API error: ${response.status}`)
+      }
+
       const data = await response.json()
+      console.log("[v0] Leaderboards fetched successfully:", Object.keys(data).length, "tracks")
       setLeaderboards(data)
     } catch (error) {
       console.error("[v0] Error fetching leaderboards:", error)
+      // Set empty leaderboards on error to prevent UI issues
+      const emptyData: Record<string, LeaderboardEntry[]> = {}
+      TRACKS.forEach((track) => {
+        emptyData[track] = []
+      })
+      setLeaderboards(emptyData)
     } finally {
       setLoading(false)
     }
