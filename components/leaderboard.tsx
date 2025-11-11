@@ -6,8 +6,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Trophy, Medal, Award, User } from "lucide-react"
 import type { LeaderboardEntry } from "@/lib/redis"
 import { TRACKS } from "@/lib/redis"
+import { useTranslations } from "@/lib/i18n"
 
 export default function Leaderboard() {
+  const t = useTranslations()
+
   const [leaderboards, setLeaderboards] = useState<Record<string, LeaderboardEntry[]>>({})
   const [loading, setLoading] = useState(true)
 
@@ -51,8 +54,8 @@ export default function Leaderboard() {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Leaderboards</CardTitle>
-          <CardDescription>Cargando rankings...</CardDescription>
+          <CardTitle>{t.leaderboardTitle}</CardTitle>
+          <CardDescription>{t.loadingRankings}</CardDescription>
         </CardHeader>
       </Card>
     )
@@ -63,9 +66,9 @@ export default function Leaderboard() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Trophy className="h-6 w-6 text-yellow-500" />
-          Leaderboards - Top 5
+          {t.leaderboardTitle}
         </CardTitle>
-        <CardDescription>Los mejores puntajes por categoría</CardDescription>
+        <CardDescription>{t.leaderboardDescription}</CardDescription>
       </CardHeader>
       <CardContent>
         <Tabs defaultValue={TRACKS[0]} className="w-full">
@@ -116,7 +119,7 @@ export default function Leaderboard() {
                               {entry.username}
                             </p>
                           ) : (
-                            <p className="text-sm text-muted-foreground italic">Anónimo</p>
+                            <p className="text-sm text-muted-foreground italic">{t.anonymous}</p>
                           )}
                         </div>
                         <p className="text-sm text-foreground line-clamp-2">{entry.description}</p>
@@ -138,7 +141,7 @@ export default function Leaderboard() {
                           </div>
                         )}
                         <p className="mt-1 text-xs text-muted-foreground">
-                          {new Date(entry.timestamp).toLocaleDateString("es-AR")}
+                          {new Date(entry.timestamp).toLocaleDateString()}
                         </p>
                       </div>
                     </div>
@@ -147,8 +150,8 @@ export default function Leaderboard() {
               ) : (
                 <div className="flex flex-col items-center justify-center py-12 text-center">
                   <Trophy className="h-12 w-12 text-muted-foreground/50 mb-3" />
-                  <p className="text-muted-foreground">No hay entradas en este track todavía</p>
-                  <p className="text-sm text-muted-foreground">¡Sé el primero en subir tu experiencia!</p>
+                  <p className="text-muted-foreground">{t.noEntries}</p>
+                  <p className="text-sm text-muted-foreground">{t.beFirst}</p>
                 </div>
               )}
             </TabsContent>

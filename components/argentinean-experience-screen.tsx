@@ -12,6 +12,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Loader2, Upload, X, ImageIcon } from "lucide-react"
 import type { LeaderboardEntry } from "@/lib/redis"
 import Leaderboard from "./leaderboard"
+import { useTranslations } from "@/lib/i18n"
 
 const contractAddress = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || "0xA3E6713d0E67002d3C707e64D8E41530385F6CFB"
 
@@ -52,17 +53,19 @@ export default function ArgentineanExperienceScreen() {
 
   const proofOfExperience = new ProofOfArgentineanExperience(contractAddress)
 
+  const t = useTranslations()
+
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
 
     if (!file.type.startsWith("image/")) {
-      setError("Por favor sube un archivo de imagen válido")
+      setError(t.imageError)
       return
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      setError("La imagen debe ser menor a 5MB")
+      setError(t.imageSizeError)
       return
     }
 
@@ -244,14 +247,19 @@ export default function ArgentineanExperienceScreen() {
     return "bg-destructive"
   }
 
+  const getScoreLabel = (score: number): string => {
+    if (score >= 81) return t.scoreRanges.high
+    if (score >= 51) return t.scoreRanges.mediumHigh
+    if (score >= 21) return t.scoreRanges.mediumLow
+    return t.scoreRanges.low
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-card">
         <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-          <h1 className="text-4xl font-bold text-foreground">Proof of Argentinean Experience</h1>
-          <p className="mt-2 text-muted-foreground">
-            Evalúa qué tan argentina es tu experiencia usando inteligencia artificial
-          </p>
+          <h1 className="text-4xl font-bold text-foreground">{t.title}</h1>
+          <p className="mt-2 text-muted-foreground">{t.subtitle}</p>
         </div>
       </header>
 
@@ -261,15 +269,13 @@ export default function ArgentineanExperienceScreen() {
             {/* Evaluation Form */}
             <Card>
               <CardHeader>
-                <CardTitle>Evalúa tu experiencia argentina</CardTitle>
-                <CardDescription>
-                  Sube una imagen o describe una experiencia y obtén un puntaje de qué tan argentina es (0-100)
-                </CardDescription>
+                <CardTitle>{t.formTitle}</CardTitle>
+                <CardDescription>{t.formDescription}</CardDescription>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleEvaluate} className="space-y-4">
                   <div>
-                    <label className="mb-2 block text-sm font-medium text-foreground">Sube una imagen (opcional)</label>
+                    <label className="mb-2 block text-sm font-medium text-foreground">{t.uploadImageLabel}</label>
 
                     {!uploadedImage ? (
                       <div className="flex items-center gap-2">
@@ -283,12 +289,12 @@ export default function ArgentineanExperienceScreen() {
                           {analyzingImage ? (
                             <>
                               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              Analizando imagen...
+                              {t.analyzingImage}
                             </>
                           ) : (
                             <>
                               <Upload className="mr-2 h-4 w-4" />
-                              Subir imagen
+                              {t.uploadButton}
                             </>
                           )}
                         </Button>
@@ -321,11 +327,11 @@ export default function ArgentineanExperienceScreen() {
                             <div className="flex items-start gap-2">
                               <ImageIcon className="h-4 w-4 mt-0.5 flex-shrink-0" />
                               <div className="space-y-1">
-                                <p className="font-medium">Análisis de imagen:</p>
+                                <p className="font-medium">{t.imageAnalysisLabel}</p>
                                 <p className="text-muted-foreground">{imageAnalysis.description}</p>
                                 <p className="text-muted-foreground">
-                                  Calidad: {(imageAnalysis.image_quality * 100).toFixed(0)}%
-                                  {imageAnalysis.is_ai_generated && " • Generada por IA"}
+                                  {t.imageQuality}: {(imageAnalysis.image_quality * 100).toFixed(0)}%
+                                  {imageAnalysis.is_ai_generated && ` • ${t.aiGenerated}`}
                                 </p>
                               </div>
                             </div>
@@ -333,21 +339,19 @@ export default function ArgentineanExperienceScreen() {
                         )}
                       </div>
                     )}
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      La IA analizará la imagen y completará automáticamente el formulario
-                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">{t.imageHelp}</p>
                   </div>
 
                   <div>
                     <label htmlFor="description" className="mb-2 block text-sm font-medium text-foreground">
-                      Descripción de la experiencia
+                      {t.descriptionLabel}
                     </label>
                     <Textarea
                       id="description"
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
                       rows={4}
-                      placeholder="Ej: Tomando mate con amigos en la costanera después del partido."
+                      placeholder={t.descriptionPlaceholder}
                       required
                       readOnly={true}
                     />
@@ -355,45 +359,42 @@ export default function ArgentineanExperienceScreen() {
 
                   <div>
                     <label htmlFor="tags" className="mb-2 block text-sm font-medium text-foreground">
-                      Tags (opcional, separados por comas)
+                      {t.tagsLabel}
                     </label>
                     <Input
                       id="tags"
                       type="text"
                       value={tagsInput}
                       onChange={(e) => setTagsInput(e.target.value)}
-                      placeholder="Ej: sports, food, touristic"
+                      placeholder={t.tagsPlaceholder}
                       readOnly={true}
                     />
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      Tags sugeridos: food, sports, customs, touristic, famous_people, cultural_shocks,
-                      devconnect_crypto
-                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">{t.tagsHelp}</p>
                   </div>
 
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div>
                       <label htmlFor="username" className="mb-2 block text-sm font-medium text-foreground">
-                        Nombre (opcional)
+                        {t.usernameLabel}
                       </label>
                       <Input
                         id="username"
                         type="text"
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
-                        placeholder="Tu nombre"
+                        placeholder={t.usernamePlaceholder}
                       />
                     </div>
                     <div>
                       <label htmlFor="email" className="mb-2 block text-sm font-medium text-foreground">
-                        Email (opcional)
+                        {t.emailLabel}
                       </label>
                       <Input
                         id="email"
                         type="email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        placeholder="tu@email.com"
+                        placeholder={t.emailPlaceholder}
                       />
                     </div>
                   </div>
@@ -402,16 +403,16 @@ export default function ArgentineanExperienceScreen() {
                     {evaluating || savingToLeaderboard ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        {evaluating ? "Evaluando..." : "Guardando..."}
+                        {evaluating ? t.evaluating : t.saving}
                       </>
                     ) : (
-                      "Evaluar Experiencia"
+                      t.evaluateButton
                     )}
                   </Button>
 
                   {error && (
                     <div className="rounded-md bg-destructive/10 border border-destructive p-3">
-                      <p className="font-medium text-destructive">Error:</p>
+                      <p className="font-medium text-destructive">{t.errorLabel}</p>
                       <p className="text-sm text-destructive">{error}</p>
                     </div>
                   )}
@@ -423,12 +424,12 @@ export default function ArgentineanExperienceScreen() {
             {result && (
               <Card>
                 <CardHeader>
-                  <CardTitle>Resultado</CardTitle>
+                  <CardTitle>{t.resultTitle}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="mb-4">
                     <div className="mb-2 flex items-center justify-between">
-                      <span className="text-sm font-medium text-foreground">Score:</span>
+                      <span className="text-sm font-medium text-foreground">{t.scoreLabel}</span>
                       <span className={`text-2xl font-bold ${getScoreColor(result.score)}`}>{result.score}/100</span>
                     </div>
                     <div className="h-4 w-full rounded-full bg-muted">
@@ -437,25 +438,22 @@ export default function ArgentineanExperienceScreen() {
                         style={{ width: `${result.score}%` }}
                       />
                     </div>
-                    <div className="mt-2 text-xs text-muted-foreground">
-                      {result.score >= 81 && "Ícono nacional o símbolo cultural fuerte"}
-                      {result.score >= 51 && result.score < 81 && "Claramente argentino"}
-                      {result.score >= 21 && result.score < 51 && "Parcialmente argentino o ambiguo"}
-                      {result.score < 21 && "Nada argentino o genérico"}
-                    </div>
+                    <div className="mt-2 text-xs text-muted-foreground">{getScoreLabel(result.score)}</div>
                   </div>
 
                   <div className="rounded-lg bg-accent p-4">
-                    <p className="mb-1 text-sm font-medium text-foreground">Mensaje:</p>
+                    <p className="mb-1 text-sm font-medium text-foreground">{t.messageLabel}</p>
                     <p className="italic text-foreground">{result.message}</p>
                   </div>
 
                   {lastDescription && (
                     <div className="mt-4 border-t border-border pt-4">
-                      <p className="mb-1 text-xs text-muted-foreground">Descripción evaluada:</p>
+                      <p className="mb-1 text-xs text-muted-foreground">{t.evaluatedDescription}</p>
                       <p className="text-sm text-foreground">{lastDescription}</p>
                       {lastTags.length > 0 && (
-                        <p className="mt-1 text-xs text-muted-foreground">Tags: {lastTags.join(", ")}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {t.tagsLabel2} {lastTags.join(", ")}
+                        </p>
                       )}
                     </div>
                   )}
@@ -463,9 +461,11 @@ export default function ArgentineanExperienceScreen() {
                   {(uploadedImage || lastTags.length > 0) && (
                     <div className="mt-4 border-t border-border pt-4">
                       <div className="rounded-lg bg-success/10 border border-success p-3">
-                        <p className="text-sm text-success">✓ Guardado automáticamente en el leaderboard</p>
+                        <p className="text-sm text-success">✓ {t.autoSaved}</p>
                         {lastTags.length > 0 && (
-                          <p className="text-xs text-muted-foreground mt-1">Tracks: {lastTags.join(", ")}</p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {t.tracksLabel} {lastTags.join(", ")}
+                          </p>
                         )}
                       </div>
                     </div>
@@ -480,10 +480,8 @@ export default function ArgentineanExperienceScreen() {
                 <Card>
                   <AccordionTrigger className="px-6 hover:no-underline [&[data-state=open]]:border-b">
                     <div className="text-left">
-                      <h3 className="text-lg font-semibold">Ejemplos</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Haz clic en un ejemplo para cargarlo en el formulario
-                      </p>
+                      <h3 className="text-lg font-semibold">{t.examplesTitle}</h3>
+                      <p className="text-sm text-muted-foreground">{t.examplesDescription}</p>
                     </div>
                   </AccordionTrigger>
                   <AccordionContent className="px-6 pb-6">
@@ -498,10 +496,8 @@ export default function ArgentineanExperienceScreen() {
                         variant="outline"
                         className="w-full justify-start text-left"
                       >
-                        <span className="font-medium">Ejemplo 1:</span>
-                        <span className="ml-2 text-muted-foreground">
-                          Tomando mate con amigos en la costanera después del partido.
-                        </span>
+                        <span className="font-medium">{t.exampleLabel} 1:</span>
+                        <span className="ml-2 text-muted-foreground">{t.example1}</span>
                       </Button>
                       <Button
                         onClick={() =>
@@ -513,10 +509,8 @@ export default function ArgentineanExperienceScreen() {
                         variant="outline"
                         className="w-full justify-start text-left"
                       >
-                        <span className="font-medium">Ejemplo 2:</span>
-                        <span className="ml-2 text-muted-foreground">
-                          Joven con camiseta de Boca Juniors en La Bombonera.
-                        </span>
+                        <span className="font-medium">{t.exampleLabel} 2:</span>
+                        <span className="ml-2 text-muted-foreground">{t.example2}</span>
                       </Button>
                       <Button
                         onClick={() =>
@@ -525,18 +519,16 @@ export default function ArgentineanExperienceScreen() {
                         variant="outline"
                         className="w-full justify-start text-left"
                       >
-                        <span className="font-medium">Ejemplo 3:</span>
-                        <span className="ml-2 text-muted-foreground">
-                          Comiendo asado con familia en un domingo de verano.
-                        </span>
+                        <span className="font-medium">{t.exampleLabel} 3:</span>
+                        <span className="ml-2 text-muted-foreground">{t.example3}</span>
                       </Button>
                       <Button
                         onClick={() => loadExample("Tomando café en un coworking de Berlín.", ["work"])}
                         variant="outline"
                         className="w-full justify-start text-left"
                       >
-                        <span className="font-medium">Ejemplo 4:</span>
-                        <span className="ml-2 text-muted-foreground">Tomando café en un coworking de Berlín.</span>
+                        <span className="font-medium">{t.exampleLabel} 4:</span>
+                        <span className="ml-2 text-muted-foreground">{t.example4}</span>
                       </Button>
                     </div>
                   </AccordionContent>
