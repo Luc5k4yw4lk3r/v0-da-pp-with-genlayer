@@ -213,7 +213,7 @@ export default function ArgentineanExperienceScreen() {
 
       console.log("[v0] Auto-save completed successfully")
 
-      if (refreshLeaderboard) {
+      if (refreshLeaderboard && typeof refreshLeaderboard === 'function') {
         console.log("[v0] Refreshing leaderboard...")
         refreshLeaderboard()
       }
