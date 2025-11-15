@@ -114,7 +114,10 @@ export async function getLeaderboard(track: Track): Promise<LeaderboardEntry[]> 
         // Otherwise parse it as JSON string
         return JSON.parse(entry as string) as LeaderboardEntry
       } catch (parseError) {
-        console.error("[v0] Error parsing entry:", entry, parseError)
+        console.error("[v0] Error parsing entry:", {
+          entry: typeof entry === 'object' ? JSON.stringify(entry) : entry,
+          error: parseError instanceof Error ? parseError.message : String(parseError)
+        })
         return {
           score: 0,
           description: "Invalid entry",
@@ -125,7 +128,11 @@ export async function getLeaderboard(track: Track): Promise<LeaderboardEntry[]> 
       }
     })
   } catch (error) {
-    console.error("[v0] Error in getLeaderboard:", error)
+    console.error("[v0] Error in getLeaderboard:", {
+      track,
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined
+    })
     return []
   }
 }
