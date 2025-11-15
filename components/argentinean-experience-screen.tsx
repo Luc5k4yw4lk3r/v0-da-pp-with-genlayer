@@ -508,7 +508,7 @@ export default function ArgentineanExperienceScreen() {
                         type="text"
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
-                        placeholder="Your name"
+                        placeholder="Your name, telegram or twitter user"
                       />
                     </div>
                     <div>
