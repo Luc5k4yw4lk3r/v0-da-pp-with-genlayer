@@ -36,6 +36,7 @@ export default function ArgentineanExperienceScreen() {
   const [uploadedImage, setUploadedImage] = useState<string | null>(null)
   const [analyzingImage, setAnalyzingImage] = useState(false)
   const [imageAnalysis, setImageAnalysis] = useState<ImageAnalysisResult | null>(null)
+  const [blobImageUrl, setBlobImageUrl] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [username, setUsername] = useState("")
@@ -72,6 +73,22 @@ export default function ArgentineanExperienceScreen() {
     setImageAnalysis(null)
 
     try {
+      const uploadFormData = new FormData()
+      uploadFormData.append("file", file)
+
+      const uploadResponse = await fetch("/api/upload-image", {
+        method: "POST",
+        body: uploadFormData,
+      })
+
+      if (!uploadResponse.ok) {
+        throw new Error("Error uploading image to Blob storage")
+      }
+
+      const uploadResult = await uploadResponse.json()
+      setBlobImageUrl(uploadResult.url)
+      console.log("[v0] Image uploaded to Blob:", uploadResult.url)
+
       const reader = new FileReader()
       reader.onload = (e) => {
         setUploadedImage(e.target?.result as string)
@@ -106,6 +123,7 @@ export default function ArgentineanExperienceScreen() {
   const handleClearImage = () => {
     setUploadedImage(null)
     setImageAnalysis(null)
+    setBlobImageUrl(null)
     if (fileInputRef.current) {
       fileInputRef.current.value = ""
     }
@@ -226,7 +244,7 @@ export default function ArgentineanExperienceScreen() {
         score,
         description,
         message: result?.message,
-        imageUrl: uploadedImage || undefined,
+        imageUrl: blobImageUrl || undefined,
         username: username || undefined,
         email: email || undefined,
         timestamp: Date.now(),

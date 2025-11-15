@@ -4,7 +4,7 @@ export interface LeaderboardEntry {
   score: number
   description: string
   message?: string
-  imageUrl: string
+  imageUrl?: string
   username?: string
   email?: string
   timestamp: number
@@ -113,7 +113,7 @@ export async function getLeaderboard(track: Track): Promise<LeaderboardEntry[]> 
         return {
           score: 0,
           description: "Invalid entry",
-          imageUrl: "",
+          imageUrl: undefined,
           timestamp: Date.now(),
           tags: [],
         }
