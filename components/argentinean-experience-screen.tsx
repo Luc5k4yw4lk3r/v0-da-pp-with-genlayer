@@ -181,12 +181,23 @@ export default function ArgentineanExperienceScreen() {
 
       const evaluationResult = await evaluateWithTracking(description, tags)
 
-      // Store output for display
-      setTransactionOutput(evaluationResult.score)
-
       console.log("[v0] Evaluation result:", evaluationResult)
+      console.log("[v0] Evaluation result score:", evaluationResult?.score)
+      console.log("[v0] Evaluation result message:", evaluationResult?.message)
 
-      setResult(evaluationResult)
+      // Store output for display
+      setTransactionOutput(evaluationResult?.score || null)
+
+      // Ensure we have a valid result with score and message
+      if (evaluationResult && (evaluationResult.score !== undefined || evaluationResult.message !== undefined)) {
+        setResult({
+          score: evaluationResult.score || 0,
+          message: evaluationResult.message || "",
+        })
+      } else {
+        console.warn("[v0] Invalid evaluation result:", evaluationResult)
+        setResult(null)
+      }
       setLastDescription(description)
       setLastTags(tags || [])
 

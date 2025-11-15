@@ -134,8 +134,34 @@ class ProofOfArgentineanExperience {
         return null
       }
 
-      // Extract final result - could be in result, data.result, or receipt.result
+      // Extract final result - could be in result, data.result, receipt.result, or eq_outputs
       let finalResult = txData.result || txData.data?.result || txData.receipt?.result
+
+      // Try to get result from eq_outputs (GenLayer stores equivalence principle results here)
+      if (!finalResult && txData.leader_receipt) {
+        const leaderReceipt = Array.isArray(txData.leader_receipt)
+          ? txData.leader_receipt.find((r: any) => r.mode === "leader") || txData.leader_receipt[0]
+          : txData.leader_receipt
+
+        if (leaderReceipt?.eq_outputs) {
+          // eq_outputs can be an object with keys like "0", "1", etc. or a direct value
+          const eqOutputs = leaderReceipt.eq_outputs
+          if (typeof eqOutputs === 'object' && !Array.isArray(eqOutputs)) {
+            // Try to get the first output or a specific key
+            const firstKey = Object.keys(eqOutputs)[0]
+            if (firstKey) {
+              finalResult = eqOutputs[firstKey]
+            } else if (Object.keys(eqOutputs).length === 0) {
+              // Empty object, try to get from result field
+              finalResult = leaderReceipt.result
+            }
+          } else {
+            finalResult = eqOutputs
+          }
+        } else if (leaderReceipt?.result) {
+          finalResult = leaderReceipt.result
+        }
+      }
 
       // If result is just a number (like 6), convert it to an object with score
       if (typeof finalResult === 'number') {
@@ -150,6 +176,16 @@ class ProofOfArgentineanExperience {
             score: finalResult.score || finalResult.get?.('score'),
             message: finalResult.message || finalResult.get?.('message') || ""
           }
+        }
+      }
+
+      // Try to decode base64 result if it's a string starting with 'A'
+      if (typeof finalResult === 'string' && finalResult.startsWith('A')) {
+        try {
+          // This might be base64 encoded, but for now we'll try to get from other sources
+          // The actual result should be in eq_outputs or result field
+        } catch (e) {
+          console.log("[v0] Could not decode result string:", e)
         }
       }
 
@@ -366,49 +402,52 @@ class ProofOfArgentineanExperience {
         result = receipt.data
       }
 
-      console.log("[v0] Final result:", result)
+      console.log("[v0] Receipt result:", result)
+      console.log("[v0] Consensus data finalResult:", consensusData?.finalResult)
 
-      // Si el resultado es solo un número, convertirlo a objeto
-      if (typeof result === "number") {
-        return {
-          score: result,
-          message: "",
-        }
-      }
-
-      // Convertir el resultado de Map a objeto si es necesario
-      if (result instanceof Map) {
-        return {
-          score: Number(result.get("score") || 0),
-          message: result.get("message") || "",
-        }
-      }
-
-      // Si es un objeto directo
-      if (result && typeof result === "object") {
-        return {
-          score: Number(result.score || result.get?.("score") || 0),
-          message: result.message || result.get?.("message") || "",
-        }
-      }
-
-      // Si no hay resultado en el receipt, intentar obtenerlo del consensusData
+      // Priorizar el resultado del consensusData si está disponible
       if (consensusData?.finalResult) {
         const final = consensusData.finalResult
         if (typeof final === "number") {
-          return {
-            score: final,
-            message: "",
-          }
-        }
-        if (typeof final === "object") {
-          return {
+          result = { score: final, message: "" }
+        } else if (typeof final === "object" && final !== null) {
+          result = {
             score: Number(final.score || 0),
             message: final.message || "",
           }
         }
       }
 
+      // Si aún no hay resultado, intentar del receipt
+      if (!result) {
+        // Si el resultado es solo un número, convertirlo a objeto
+        if (typeof result === "number") {
+          result = {
+            score: result,
+            message: "",
+          }
+        }
+
+        // Convertir el resultado de Map a objeto si es necesario
+        if (result instanceof Map) {
+          result = {
+            score: Number(result.get("score") || 0),
+            message: result.get("message") || "",
+          }
+        }
+
+        // Si es un objeto directo
+        if (result && typeof result === "object" && !Array.isArray(result)) {
+          result = {
+            score: Number(result.score || result.get?.("score") || 0),
+            message: result.message || result.get?.("message") || "",
+          }
+        }
+      }
+
+      console.log("[v0] Final extracted result:", result)
+
+      // Asegurar que siempre retornamos un objeto con score y message
       return {
         score: Number(result?.score || 0),
         message: result?.message || "",
