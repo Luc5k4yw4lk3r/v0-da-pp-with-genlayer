@@ -92,87 +92,11 @@ class ProofOfArgentineanExperience {
     return statusMessages[status] || `Estado: ${status}`
   }
 
-  async evaluate(
-    description: string,
-    tags: string[] | null = null,
-    onConsensusProgress?: (progress: ConsensusProgress) => void
-  ) {
-    // Pasos simulados del consenso
-    const consensusSteps = [
-      "Iniciando evaluación...",
-      "Ejecutando primera evaluación con LLM...",
-      "Ejecutando segunda evaluación para consenso...",
-      "Comparando resultados...",
-      "Ejecutando tercera evaluación (si es necesario)...",
-      "Validando consenso...",
-      "Consenso alcanzado ✓",
-    ]
-
-    let stepIndex = 0
-    const progressInterval = setInterval(() => {
-      if (onConsensusProgress && stepIndex < consensusSteps.length) {
-        onConsensusProgress({
-          step: stepIndex + 1,
-          totalSteps: consensusSteps.length,
-          message: consensusSteps[stepIndex],
-          progress: Math.round(((stepIndex + 1) / consensusSteps.length) * 100),
-        })
-        stepIndex++
-      }
-    }, 1500) // Actualizar cada 1.5 segundos
-
-    try {
-      const result = await this.client.readContract({
-        address: this.contractAddress,
-        functionName: "evaluate",
-        args: tags ? [description, tags] : [description],
-      })
-
-      clearInterval(progressInterval)
-
-      // Notificar finalización
-      if (onConsensusProgress) {
-        onConsensusProgress({
-          step: consensusSteps.length,
-          totalSteps: consensusSteps.length,
-          message: "Consenso alcanzado ✓",
-          progress: 100,
-          completed: true,
-        })
-      }
-
-      // Convertir el resultado de Map a objeto si es necesario
-      if (result instanceof Map) {
-        return {
-          score: Number(result.get("score")),
-          message: result.get("message"),
-        }
-      }
-
-      // Si es un objeto directo
-      if (result && typeof result === "object") {
-        return {
-          score: Number(result.score || result.get?.("score") || 0),
-          message: result.message || result.get?.("message") || "",
-        }
-      }
-
-      return {
-        score: Number(result?.score || 0),
-        message: result?.message || "",
-      }
-    } catch (error) {
-      clearInterval(progressInterval)
-      throw error
-    }
-  }
-
   async _fetchConsensusDetails(txHash: string): Promise<ConsensusData | null> {
     try {
       const endpoint = process.env.NEXT_PUBLIC_STUDIO_URL || "https://devconnect-25-studio.genlayer.com/api"
       
       console.log("[v0] Fetching consensus details for tx:", txHash)
-      console.log("[v0] Endpoint:", endpoint)
       
       const response = await fetch(endpoint, {
         method: "POST",
@@ -193,7 +117,6 @@ class ProofOfArgentineanExperience {
       }
 
       const rpcResponse = await response.json()
-      console.log("[v0] RPC response received:", rpcResponse)
       
       if (rpcResponse.error) {
         console.error("[v0] RPC error:", rpcResponse.error)
@@ -201,43 +124,66 @@ class ProofOfArgentineanExperience {
       }
 
       const txData = rpcResponse.result
-      console.log("[v0] Transaction data:", txData)
+      console.log("[v0] Full transaction data:", JSON.stringify(txData, null, 2))
 
       if (!txData) {
         console.log("[v0] No transaction data found")
         return null
       }
 
-      // Extraer información del consenso
       const consensusData: ConsensusData = {
-        leader: txData.leader_receipt?.vote?.vote_address,
-        validators: [],
         finalResult: txData.result,
-        executionMode: txData.consensus_data?.execution_mode,
-        votesReceived: txData.consensus_data?.votes?.length || 0,
-        totalValidators: txData.consensus_data?.validators_pool?.length || 0,
+        validators: [],
+      }
+
+      // Obtener datos del consensus_data si existe
+      if (txData.consensus_data) {
+        consensusData.executionMode = txData.consensus_data.mode || txData.consensus_data.execution_mode
+        
+        // Los votes pueden venir como objeto o array
+        if (txData.consensus_data.votes) {
+          const votesData = Array.isArray(txData.consensus_data.votes) 
+            ? txData.consensus_data.votes 
+            : Object.values(txData.consensus_data.votes || {})
+          
+          consensusData.votesReceived = votesData.length
+          consensusData.totalValidators = votesData.length
+        }
       }
 
       // Agregar información del leader si existe
       if (txData.leader_receipt) {
-        consensusData.validators?.push({
-          address: txData.leader_receipt.vote?.vote_address || "Leader",
-          vote: txData.leader_receipt.vote?.vote,
-          llmProvider: txData.leader_receipt.vote?.llm_provider,
-        })
-      }
-
-      // Agregar votos de validadores
-      if (txData.consensus_data?.votes) {
-        for (const vote of txData.consensus_data.votes) {
+        const leaderVote = txData.leader_receipt.vote
+        consensusData.leader = leaderVote?.vote_address || txData.leader_receipt.leader_address || "Leader"
+        
+        if (leaderVote) {
           consensusData.validators?.push({
-            address: vote.vote_address || "Validator",
-            vote: vote.vote,
-            llmProvider: vote.llm_provider,
+            address: leaderVote.vote_address || "Leader",
+            vote: leaderVote.vote,
+            llmProvider: leaderVote.llm_provider,
           })
         }
       }
 
+      // Agregar votos de validadores del consensus_data
+      if (txData.consensus_data?.votes) {
+        const votesData = Array.isArray(txData.consensus_data.votes) 
+          ? txData.consensus_data.votes 
+          : Object.values(txData.consensus_data.votes || {})
+        
+        for (const vote of votesData) {
+          // Evitar duplicar el leader
+          if (vote.vote_address !== consensusData.leader) {
+            consensusData.validators?.push({
+              address: vote.vote_address || "Validator",
+              vote: vote.vote,
+              llmProvider: vote.llm_provider,
+            })
+          }
+        }
+      }
+
+      console.log("[v0] Parsed consensus data:", consensusData)
       return consensusData
     } catch (error) {
       console.error("[v0] Error fetching consensus details:", error)
@@ -296,10 +242,10 @@ class ProofOfArgentineanExperience {
         },
       })
 
-      console.log("[v0] Transaction receipt received:", receipt)
+      console.log("[v0] Transaction receipt received")
 
       const consensusData = await this._fetchConsensusDetails(txHash)
-      console.log("[v0] Consensus data:", consensusData)
+      console.log("[v0] Consensus data retrieved")
 
       // Notificar finalización con datos del consenso
       if (onConsensusProgress) {
@@ -322,13 +268,6 @@ class ProofOfArgentineanExperience {
         result = receipt.data.result
       } else if (receipt.data) {
         result = receipt.data
-      } else {
-        console.log("[v0] No result in receipt, reading from contract...")
-        result = await this.client.readContract({
-          address: this.contractAddress,
-          functionName: "evaluate",
-          args: tags ? [description, tags] : [description],
-        })
       }
 
       console.log("[v0] Final result:", result)
