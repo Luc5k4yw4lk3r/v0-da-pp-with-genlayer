@@ -134,33 +134,95 @@ class ProofOfArgentineanExperience {
         return null
       }
 
-      // Extract final result - could be in result, data.result, receipt.result, or eq_outputs
-      let finalResult = txData.result || txData.data?.result || txData.receipt?.result
+      // Extract final result - GenLayer stores equivalence principle results in eq_outputs
+      // Structure: consensus_data.leader_receipt.eq_outputs.leader["0"] = "JSON string"
+      let finalResult = null
 
-      // Try to get result from eq_outputs (GenLayer stores equivalence principle results here)
+      // Priority 1: Get from consensus_data.leader_receipt.eq_outputs (GenLayer standard location)
+      if (txData.consensus_data?.leader_receipt) {
+        const leaderReceipt = Array.isArray(txData.consensus_data.leader_receipt)
+          ? txData.consensus_data.leader_receipt.find((r: any) => r.mode === "leader") || txData.consensus_data.leader_receipt[0]
+          : txData.consensus_data.leader_receipt
+
+        if (leaderReceipt?.eq_outputs) {
+          const eqOutputs = leaderReceipt.eq_outputs
+          console.log("[v0] Found eq_outputs:", eqOutputs)
+
+          // Structure: { "leader": { "0": "JSON string" } }
+          if (typeof eqOutputs === 'object' && !Array.isArray(eqOutputs)) {
+            if (eqOutputs.leader && typeof eqOutputs.leader === 'object') {
+              const leaderOutputs = eqOutputs.leader
+              // Get the first key (usually "0")
+              const firstKey = Object.keys(leaderOutputs)[0]
+              if (firstKey) {
+                let outputValue = leaderOutputs[firstKey]
+                console.log("[v0] Raw eq_outputs value:", outputValue)
+
+                // If it's a JSON string, parse it
+                if (typeof outputValue === 'string') {
+                  try {
+                    outputValue = JSON.parse(outputValue)
+                    console.log("[v0] Parsed eq_outputs:", outputValue)
+                  } catch (e) {
+                    console.log("[v0] Could not parse eq_outputs JSON:", e)
+                  }
+                }
+                finalResult = outputValue
+              }
+            } else {
+              // Try direct keys like "0", "1", etc.
+              const firstKey = Object.keys(eqOutputs)[0]
+              if (firstKey) {
+                let outputValue = eqOutputs[firstKey]
+                if (typeof outputValue === 'string') {
+                  try {
+                    outputValue = JSON.parse(outputValue)
+                  } catch (e) {
+                    console.log("[v0] Could not parse eq_outputs JSON:", e)
+                  }
+                }
+                finalResult = outputValue
+              }
+            }
+          }
+        }
+      }
+
+      // Priority 2: Try from leader_receipt at root level
       if (!finalResult && txData.leader_receipt) {
         const leaderReceipt = Array.isArray(txData.leader_receipt)
           ? txData.leader_receipt.find((r: any) => r.mode === "leader") || txData.leader_receipt[0]
           : txData.leader_receipt
 
         if (leaderReceipt?.eq_outputs) {
-          // eq_outputs can be an object with keys like "0", "1", etc. or a direct value
           const eqOutputs = leaderReceipt.eq_outputs
+          console.log("[v0] Found eq_outputs in root leader_receipt:", eqOutputs)
+
           if (typeof eqOutputs === 'object' && !Array.isArray(eqOutputs)) {
-            // Try to get the first output or a specific key
-            const firstKey = Object.keys(eqOutputs)[0]
-            if (firstKey) {
-              finalResult = eqOutputs[firstKey]
-            } else if (Object.keys(eqOutputs).length === 0) {
-              // Empty object, try to get from result field
-              finalResult = leaderReceipt.result
+            if (eqOutputs.leader && typeof eqOutputs.leader === 'object') {
+              const leaderOutputs = eqOutputs.leader
+              const firstKey = Object.keys(leaderOutputs)[0]
+              if (firstKey) {
+                let outputValue = leaderOutputs[firstKey]
+                if (typeof outputValue === 'string') {
+                  try {
+                    outputValue = JSON.parse(outputValue)
+                  } catch (e) {
+                    console.log("[v0] Could not parse eq_outputs JSON:", e)
+                  }
+                }
+                finalResult = outputValue
+              }
             }
-          } else {
-            finalResult = eqOutputs
           }
         } else if (leaderReceipt?.result) {
           finalResult = leaderReceipt.result
         }
+      }
+
+      // Priority 3: Try from result field directly
+      if (!finalResult) {
+        finalResult = txData.result || txData.data?.result || txData.receipt?.result
       }
 
       // If result is just a number (like 6), convert it to an object with score
