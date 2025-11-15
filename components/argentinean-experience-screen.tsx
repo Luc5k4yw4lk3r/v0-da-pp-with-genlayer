@@ -384,6 +384,25 @@ export default function ArgentineanExperienceScreen() {
         </div>
       </header>
 
+      <div className="border-b border-border bg-muted/30">
+        <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+          <Card>
+            <CardContent className="pt-6">
+              <h2 className="text-lg font-semibold mb-3 text-foreground">About This Project</h2>
+              <p className="text-sm text-muted-foreground mb-3">
+                <strong>Proof of Argentinean Experience</strong> is a decentralized application that allows users to upload photos of Argentinean cultural experiences (asado, mate, La Bombonera stadium, etc.), generate text descriptions, and use GenLayer's decentralized AI consensus to evaluate how "Argentinean" the content appears (scoring 0-100).
+              </p>
+              <p className="text-sm text-muted-foreground mb-3">
+                The application ranks photos in leaderboards by category (food, customs, sports, etc.) and operates in a decentralized and transparent manner, using GenLayer's consensus as a "digital court" where validator nodes powered by diverse AI models reach consensus on subjective decisions.
+              </p>
+              <p className="text-sm text-muted-foreground">
+                <strong>Why GenLayer?</strong> Multiple validators provide multiple cultural perspectives, reducing bias from a single model. The consensus mechanism aggregates diverse viewpoints for fairer evaluations, making it ideal for subjective judgments like cultural authenticity.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="grid gap-6 lg:grid-cols-2">
           <div className="space-y-6">
@@ -849,6 +868,48 @@ export default function ArgentineanExperienceScreen() {
           </div>
         </div>
       </main>
+
+      <footer className="border-t border-border bg-card mt-12">
+        <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 text-sm text-muted-foreground">
+            <span className="flex items-center gap-1">
+              Powered by{" "}
+              <a
+                href="https://www.genlayer.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary hover:underline font-medium"
+              >
+                GenLayer
+              </a>
+            </span>
+            <span className="hidden sm:inline">•</span>
+            <span className="flex items-center gap-1">
+              Powered by{" "}
+              <a
+                href="https://v0.app"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary hover:underline font-medium"
+              >
+                v0
+              </a>
+            </span>
+            <span className="hidden sm:inline">•</span>
+            <span className="flex items-center gap-1">
+              Powered by{" "}
+              <a
+                href="https://proofoftravel.xyz"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary hover:underline font-medium"
+              >
+                ProofOfTravel.xyz
+              </a>
+            </span>
+          </div>
+        </div>
+      </footer>
     </div>
   )
 }
