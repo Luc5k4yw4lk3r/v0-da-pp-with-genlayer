@@ -83,25 +83,26 @@ class ProofOfArgentineanExperience {
       : null
 
     // Build args array conditionally based on what's provided
-    // IMPORTANT: The deployed contract must have the updated signature with image_quality parameter
-    // Current signature: evaluate(description: str, tags: list[str] = None, image_quality: int = None)
+    // IMPORTANT: Temporarily disabled image_quality parameter until the new contract is deployed
+    // The old contract at 0xA3E6713d0E67002d3C707e64D8E41530385F6CFB only accepts:
+    //   evaluate(description: str, tags: list[str] = None)
+    // The new contract at 0x9F8f36bb4641951d27d7185CCf37e68BbDA184Fb should accept:
+    //   evaluate(description: str, tags: list[str] = None, image_quality: int = None)
     // 
-    // For now, we only pass image_quality if tags are also provided, to maintain argument order.
-    // Once the contract is redeployed with the new signature, image_quality will be fully supported.
+    // TODO: Once the new contract is deployed and verified, uncomment the image_quality logic below
     const args: any[] = [description]
 
     // Add tags if provided and not empty
     if (tags && tags.length > 0) {
       args.push(tags)
+      // TEMPORARILY DISABLED: Uncomment once new contract is deployed
       // Add imageQuality if provided (only after tags to maintain correct order)
-      // TODO: Once contract is redeployed with image_quality parameter, this will work fully
-      if (qualityInt !== null) {
-        args.push(qualityInt)
-      }
+      // if (qualityInt !== null) {
+      //   args.push(qualityInt)
+      // }
     }
-    // Note: If tags is null/empty but qualityInt is provided, we don't pass qualityInt
-    // because the contract signature requires positional arguments in order.
-    // The quality penalty will be handled by the LLM prompt if image_quality info is available in description
+    // Note: image_quality is temporarily disabled to ensure compatibility with the old contract
+    // Once the new contract is deployed, uncomment the code above to enable image quality penalties
 
     console.log("[v0] Calling contract with args:", args)
 
