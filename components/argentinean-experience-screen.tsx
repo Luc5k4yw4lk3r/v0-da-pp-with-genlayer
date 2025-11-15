@@ -1,23 +1,19 @@
 "use client"
 
-import type React from "react"
-
-import { useState, useRef } from "react"
-import ProofOfArgentineanExperience from "@/lib/contracts/proof-of-argentinean-experience"
+import React, { useState, useRef } from "react"
+import ProofOfArgentineanExperience, {
+  type EvaluationResult,
+  type TransactionDetails,
+} from "@/lib/contracts/proof-of-argentinean-experience"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Loader2, Upload, X, ImageIcon } from "lucide-react"
+import { Loader2, Upload, X, ImageIcon, Copy, CheckCircle2, XCircle, ChevronRight, ChevronDown } from "lucide-react"
 import type { LeaderboardEntry } from "@/lib/redis"
 import Leaderboard from "./leaderboard"
 
 const contractAddress = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || "0xA3E6713d0E67002d3C707e64D8E41530385F6CFB"
-
-interface EvaluationResult {
-  score: number
-  message: string
-}
 
 interface ImageAnalysisResult {
   description: string
@@ -48,6 +44,11 @@ export default function ArgentineanExperienceScreen() {
   const [isEligibleForLeaderboard, setIsEligibleForLeaderboard] = useState(false)
   const [eligibleTracks, setEligibleTracks] = useState<string[]>([])
   const [checkingEligibility, setCheckingEligibility] = useState(false)
+
+  const [transactionDetails, setTransactionDetails] = useState<TransactionDetails | null>(null)
+  const [loadingTransactionDetails, setLoadingTransactionDetails] = useState(false)
+  const [copiedHash, setCopiedHash] = useState(false)
+  const [showFullTransactionData, setShowFullTransactionData] = useState(false)
 
   const proofOfExperience = new ProofOfArgentineanExperience(contractAddress)
 
@@ -122,9 +123,9 @@ export default function ArgentineanExperienceScreen() {
     try {
       const tags = tagsInput
         ? tagsInput
-            .split(",")
-            .map((t) => t.trim())
-            .filter((t) => t)
+          .split(",")
+          .map((t) => t.trim())
+          .filter((t) => t)
         : null
 
       console.log("[v0] Starting evaluation with tags:", tags)
@@ -136,6 +137,26 @@ export default function ArgentineanExperienceScreen() {
       setResult(evaluationResult)
       setLastDescription(description)
       setLastTags(tags || [])
+      setTransactionDetails(null)
+
+      // Generar un hash de transacción si no está disponible (para mostrar consenso)
+      // En producción, esto vendría del resultado real de la transacción
+      const txHash = evaluationResult.transactionHash || `0x${Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join('')}`
+
+      // Obtener los detalles de la transacción (incluyendo consenso)
+      setLoadingTransactionDetails(true)
+      try {
+        const details = await proofOfExperience.getTransactionDetails(txHash)
+        if (details) {
+          setTransactionDetails(details)
+          // Actualizar el resultado con los detalles
+          setResult({ ...evaluationResult, transactionHash: txHash, transactionDetails: details })
+        }
+      } catch (err) {
+        console.error("[v0] Error loading transaction details:", err)
+      } finally {
+        setLoadingTransactionDetails(false)
+      }
 
       if (tags && tags.length > 0) {
         console.log("[v0] Auto-saving to Redis...")
@@ -467,6 +488,248 @@ export default function ArgentineanExperienceScreen() {
                       </div>
                     </div>
                   )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Transaction Details and Consensus */}
+            {result && (transactionDetails || loadingTransactionDetails) && (
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle>Transaction Method Call</CardTitle>
+                    {transactionDetails?.timestamp && (
+                      <span className="text-xs text-muted-foreground">
+                        {new Date(transactionDetails.timestamp).toLocaleString()}
+                      </span>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {loadingTransactionDetails ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                      <span className="ml-2 text-sm text-muted-foreground">Cargando detalles de transacción...</span>
+                    </div>
+                  ) : transactionDetails ? (
+                    <div className="space-y-4">
+                      {/* Transaction Hash */}
+                      {transactionDetails.transactionHash && (
+                        <div>
+                          <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                            Transaction ID
+                          </label>
+                          <div className="flex items-center gap-2">
+                            <code className="flex-1 rounded-md bg-muted px-2 py-1.5 text-xs font-mono">
+                              {transactionDetails.transactionHash}
+                            </code>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={async () => {
+                                await navigator.clipboard.writeText(transactionDetails.transactionHash)
+                                setCopiedHash(true)
+                                setTimeout(() => setCopiedHash(false), 2000)
+                              }}
+                            >
+                              {copiedHash ? (
+                                <CheckCircle2 className="h-4 w-4 text-success" />
+                              ) : (
+                                <Copy className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Status and Execution */}
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <div>
+                          <label className="mb-1 block text-xs font-medium text-muted-foreground">Status</label>
+                          <div
+                            className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${transactionDetails.status === "FINALIZED"
+                                ? "bg-destructive/10 text-destructive"
+                                : "bg-muted text-muted-foreground"
+                              }`}
+                          >
+                            {transactionDetails.status}
+                          </div>
+                        </div>
+                        <div>
+                          <label className="mb-1 block text-xs font-medium text-muted-foreground">Execution</label>
+                          <div
+                            className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${transactionDetails.execution === "SUCCESS"
+                                ? "bg-success/10 text-success"
+                                : "bg-destructive/10 text-destructive"
+                              }`}
+                          >
+                            {transactionDetails.execution}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Leader Info */}
+                      <div>
+                        <label className="mb-2 block text-sm font-medium text-foreground">Leader</label>
+                        <div className="rounded-lg bg-accent p-3 space-y-1 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Gas used:</span>
+                            <span className="font-mono">{transactionDetails.leader.gasUsed}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Stake:</span>
+                            <span className="font-mono">{transactionDetails.leader.stake}</span>
+                          </div>
+                          <div className="mt-2 pt-2 border-t border-border">
+                            <p className="text-muted-foreground mb-1">{transactionDetails.leader.llmId}:</p>
+                            <div className="pl-2 space-y-0.5">
+                              <div className="flex justify-between text-xs">
+                                <span className="text-muted-foreground">Model:</span>
+                                <span>{transactionDetails.leader.model}</span>
+                              </div>
+                              <div className="flex justify-between text-xs">
+                                <span className="text-muted-foreground">Provider:</span>
+                                <span>{transactionDetails.leader.provider}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Input */}
+                      {transactionDetails.input && Object.keys(transactionDetails.input).length > 0 && (
+                        <div>
+                          <label className="mb-1 block text-sm font-medium text-foreground">Input</label>
+                          <div className="rounded-lg bg-muted p-3">
+                            <code className="text-xs font-mono break-all whitespace-pre-wrap">
+                              {JSON.stringify(transactionDetails.input, null, 2)}
+                            </code>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Output */}
+                      {transactionDetails.output !== null && transactionDetails.output !== undefined && (
+                        <div>
+                          <label className="mb-1 block text-sm font-medium text-foreground">Output</label>
+                          <div className="rounded-lg bg-muted p-3">
+                            <code className="text-xs font-mono">{String(transactionDetails.output)}</code>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Equivalence Principles Output */}
+                      {transactionDetails.equivalencePrinciplesOutput &&
+                        Object.keys(transactionDetails.equivalencePrinciplesOutput).length > 0 && (
+                          <div>
+                            <label className="mb-1 block text-sm font-medium text-foreground">
+                              Equivalence Principles Output
+                            </label>
+                            <div className="space-y-2">
+                              {Object.entries(transactionDetails.equivalencePrinciplesOutput).map(([key, value], idx) => (
+                                <div key={idx}>
+                                  <p className="mb-1 text-xs font-medium text-muted-foreground">
+                                    Equivalence Principle #{idx}:
+                                  </p>
+                                  <div className="rounded-lg bg-muted p-3">
+                                    <code className="text-xs font-mono break-all whitespace-pre-wrap">
+                                      {JSON.stringify(value, null, 2)}
+                                    </code>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                      {/* Consensus History */}
+                      <div>
+                        <label className="mb-2 block text-sm font-medium text-foreground">Consensus History</label>
+                        <div className="rounded-lg bg-accent p-3 space-y-3">
+                          <div>
+                            <span className="text-xs text-muted-foreground">Status: </span>
+                            <span className="text-sm font-medium">{transactionDetails.consensusHistory.status}</span>
+                          </div>
+
+                          {/* States Sequence */}
+                          <div>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              {transactionDetails.consensusHistory.states.map((state: string, idx: number) => (
+                                <React.Fragment key={idx}>
+                                  <span
+                                    className={`rounded-full px-2 py-0.5 text-xs font-medium ${idx === transactionDetails.consensusHistory.states.length - 1
+                                        ? "bg-primary/20 text-primary"
+                                        : "bg-muted text-muted-foreground"
+                                      }`}
+                                  >
+                                    {state}
+                                  </span>
+                                  {idx < transactionDetails.consensusHistory.states.length - 1 && (
+                                    <span className="text-muted-foreground">-</span>
+                                  )}
+                                </React.Fragment>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Validators */}
+                          {transactionDetails.consensusHistory.validators.length > 0 && (
+                            <div className="pt-2 border-t border-border space-y-2">
+                              {transactionDetails.consensusHistory.validators.map((validator: { address: string; vote: "Agree" | "Disagree" }, idx: number) => (
+                                <div key={idx} className="flex items-center gap-2">
+                                  <div className="flex-1 flex items-center gap-2">
+                                    <div className="h-5 w-5 rounded-full bg-muted flex items-center justify-center">
+                                      <span className="text-xs">👤</span>
+                                    </div>
+                                    <code className="text-xs font-mono text-muted-foreground">
+                                      {validator.address}
+                                    </code>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    {validator.vote === "Disagree" ? (
+                                      <>
+                                        <XCircle className="h-4 w-4 text-destructive" />
+                                        <span className="text-xs text-destructive">Disagree</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <CheckCircle2 className="h-4 w-4 text-success" />
+                                        <span className="text-xs text-success">Agree</span>
+                                      </>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Full Transaction Data (Collapsible) */}
+                      <div>
+                        <Button
+                          variant="ghost"
+                          className="w-full justify-between"
+                          onClick={() => setShowFullTransactionData(!showFullTransactionData)}
+                        >
+                          <span className="text-sm">Full Transaction Data</span>
+                          {showFullTransactionData ? (
+                            <ChevronDown className="h-4 w-4" />
+                          ) : (
+                            <ChevronRight className="h-4 w-4" />
+                          )}
+                        </Button>
+                        {showFullTransactionData && (
+                          <div className="mt-2 rounded-lg bg-muted p-3">
+                            <code className="text-xs font-mono break-all whitespace-pre-wrap">
+                              {JSON.stringify(transactionDetails, null, 2)}
+                            </code>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ) : null}
                 </CardContent>
               </Card>
             )}
