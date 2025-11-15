@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useRef } from "react"
 import { useProofOfArgentineanExperience } from "@/hooks/use-proof-of-argentinean-experience"
 import { Button } from "@/components/ui/button"
@@ -83,6 +82,8 @@ export default function ArgentineanExperienceScreen() {
 
   const [copiedTxHash, setCopiedTxHash] = useState(false)
   const [fullTxData, setFullTxData] = useState<any>(null)
+
+  const [refreshLeaderboard, setRefreshLeaderboard] = useState<(() => void) | null>(null)
 
   const { evaluateWithTracking, loading: evaluating, error: hookError, consensusProgress } = useProofOfArgentineanExperience()
 
@@ -310,8 +311,6 @@ export default function ArgentineanExperienceScreen() {
     }
   }
 
-  const [refreshLeaderboard, setRefreshLeaderboard] = useState<(() => void) | null>(null)
-
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-card">
@@ -329,7 +328,6 @@ export default function ArgentineanExperienceScreen() {
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="grid gap-6 lg:grid-cols-2">
           <div className="space-y-6">
-            {/* Evaluation Form */}
             <Card>
               <CardHeader>
                 <CardTitle>{t.formTitle}</CardTitle>
@@ -701,7 +699,7 @@ export default function ArgentineanExperienceScreen() {
                             <div className="rounded-lg border border-border bg-muted/30 p-3">
                               <details>
                                 <summary className="cursor-pointer text-xs font-mono text-muted-foreground hover:text-foreground">
-                                  ▸ {...}
+                                  ▸ {"{"}...{"}"}
                                 </summary>
                                 <pre className="mt-2 overflow-auto text-xs font-mono text-foreground max-h-64">
                                   {JSON.stringify(fullTxData, null, 2)}
@@ -726,7 +724,6 @@ export default function ArgentineanExperienceScreen() {
               </Card>
             )}
 
-            {/* Result Display */}
             {result && (
               <Card>
                 <CardHeader>
@@ -780,7 +777,6 @@ export default function ArgentineanExperienceScreen() {
               </Card>
             )}
 
-            {/* Examples Section */}
             <Accordion type="single" collapsible className="w-full">
               <AccordionItem value="examples" className="border-none">
                 <Card>
