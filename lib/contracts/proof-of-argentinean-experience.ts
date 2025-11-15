@@ -174,11 +174,17 @@ class ProofOfArgentineanExperience {
       console.log("[v0] Fetching consensus details for tx:", txHash)
       console.log("[v0] Endpoint:", endpoint)
       
-      const response = await fetch(`${endpoint}/transactions/${txHash}`, {
-        method: "GET",
+      const response = await fetch(endpoint, {
+        method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          method: "eth_getTransactionByHash",
+          params: [txHash],
+          id: 1,
+        }),
       })
 
       if (!response.ok) {
@@ -186,8 +192,21 @@ class ProofOfArgentineanExperience {
         return null
       }
 
-      const txData = await response.json()
-      console.log("[v0] Transaction data received:", txData)
+      const rpcResponse = await response.json()
+      console.log("[v0] RPC response received:", rpcResponse)
+      
+      if (rpcResponse.error) {
+        console.error("[v0] RPC error:", rpcResponse.error)
+        return null
+      }
+
+      const txData = rpcResponse.result
+      console.log("[v0] Transaction data:", txData)
+
+      if (!txData) {
+        console.log("[v0] No transaction data found")
+        return null
+      }
 
       // Extraer información del consenso
       const consensusData: ConsensusData = {
