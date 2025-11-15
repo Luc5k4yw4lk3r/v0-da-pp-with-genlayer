@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
-import { Loader2, Upload, X, ImageIcon } from 'lucide-react'
+import { Loader2, Upload, X, ImageIcon, Copy, Check } from 'lucide-react'
 import type { LeaderboardEntry } from "@/lib/redis"
 import Leaderboard from "./leaderboard"
 import { useTranslations } from "@/lib/i18n"
@@ -79,6 +79,8 @@ export default function ArgentineanExperienceScreen() {
 
   const [showConsensusPanel, setShowConsensusPanel] = useState(false)
   const [completedConsensus, setCompletedConsensus] = useState<ConsensusProgress | null>(null)
+
+  const [copiedTxHash, setCopiedTxHash] = useState(false)
 
   const { evaluateWithTracking, loading: evaluating, error: hookError, consensusProgress } = useProofOfArgentineanExperience()
 
@@ -291,6 +293,16 @@ export default function ArgentineanExperienceScreen() {
     return t.scoreRanges.low
   }
 
+  const handleCopyTxHash = async (hash: string) => {
+    try {
+      await navigator.clipboard.writeText(hash)
+      setCopiedTxHash(true)
+      setTimeout(() => setCopiedTxHash(false), 2000)
+    } catch (err) {
+      console.error('[v0] Failed to copy:', err)
+    }
+  }
+
   const [refreshLeaderboard, setRefreshLeaderboard] = useState<(() => void) | null>(null)
 
   return (
@@ -467,26 +479,105 @@ export default function ArgentineanExperienceScreen() {
             {showConsensusPanel && (
               <Card className={`border-2 ${consensusProgress?.error ? "border-destructive" : "border-info"}`}>
                 <CardHeader>
-                  <CardTitle className="flex items-center">
-                    {!(completedConsensus?.completed || consensusProgress?.completed) ? (
-                      <Loader2 className="mr-2 h-5 w-5 animate-spin text-info" />
-                    ) : (
-                      <span className="mr-2 text-2xl">✓</span>
-                    )}
-                    {consensusProgress?.status
-                      ? `Proceso de Consenso - ${consensusProgress.status}`
-                      : "Proceso de Consenso GenLayer"}
+                  <CardTitle className="flex items-center justify-between">
+                    <div className="flex items-center">
+                      {!(completedConsensus?.completed || consensusProgress?.completed) ? (
+                        <Loader2 className="mr-2 h-5 w-5 animate-spin text-info" />
+                      ) : (
+                        <span className="mr-2 text-2xl">✓</span>
+                      )}
+                      <span>Transaction</span>
+                    </div>
+                    <span className="text-sm font-normal text-muted-foreground">
+                      {new Date().toLocaleTimeString()}
+                    </span>
                   </CardTitle>
-                  <CardDescription>
-                    Estados reales del proceso de consenso de GenLayer
-                  </CardDescription>
                 </CardHeader>
                 <CardContent>
                   {(() => {
                     const currentProgress = completedConsensus || consensusProgress
                     return (
-                      <>
-                        <div className="mb-4">
+                      <div className="space-y-4">
+                        {currentProgress?.txHash && (
+                          <div className="rounded-lg border border-border bg-muted/30 p-4">
+                            <div className="flex items-center justify-between gap-2 mb-3">
+                              <p className="font-mono text-xs text-foreground break-all flex-1">
+                                {currentProgress.txHash}
+                              </p>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 flex-shrink-0"
+                                onClick={() => handleCopyTxHash(currentProgress.txHash!)}
+                              >
+                                {copiedTxHash ? (
+                                  <Check className="h-4 w-4 text-success" />
+                                ) : (
+                                  <Copy className="h-4 w-4" />
+                                )}
+                              </Button>
+                            </div>
+
+                            <div className="flex gap-2 mb-4">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-medium text-muted-foreground">Status:</span>
+                                <span className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ${
+                                  currentProgress.status === 'FINALIZED' 
+                                    ? 'bg-destructive/10 text-destructive border border-destructive' 
+                                    : currentProgress.status === 'ACCEPTED'
+                                    ? 'bg-success/10 text-success border border-success'
+                                    : 'bg-info/10 text-info border border-info'
+                                }`}>
+                                  {currentProgress.status || 'PENDING'}
+                                </span>
+                              </div>
+                              {currentProgress.completed && (
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs font-medium text-muted-foreground">Execution:</span>
+                                  <span className="inline-flex items-center rounded-md bg-success/10 text-success border border-success px-2 py-1 text-xs font-medium">
+                                    SUCCESS
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+
+                            {currentProgress.consensusData?.leader && (
+                              <div className="space-y-3">
+                                <div className="flex items-center gap-2 border-b border-border pb-2">
+                                  <span className="text-sm font-semibold text-foreground">Leader:</span>
+                                </div>
+                                <div className="grid grid-cols-2 gap-3 text-sm">
+                                  <div>
+                                    <span className="text-muted-foreground">Gas used:</span>
+                                    <span className="ml-2 font-medium text-foreground">0</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-muted-foreground">Stake:</span>
+                                    <span className="ml-2 font-medium text-foreground">100</span>
+                                  </div>
+                                  <div className="col-span-2">
+                                    <span className="text-muted-foreground">LLM-0:</span>
+                                  </div>
+                                  <div className="col-span-2">
+                                    <span className="text-muted-foreground">Model:</span>
+                                    <span className="ml-2 font-medium text-foreground">gpt-4.1-nano</span>
+                                  </div>
+                                  <div className="col-span-2">
+                                    <span className="text-muted-foreground">Provider:</span>
+                                    <span className="ml-2 font-medium text-foreground">openai</span>
+                                  </div>
+                                </div>
+                                <div className="rounded-lg bg-info/5 p-3 mt-2">
+                                  <p className="font-mono text-xs text-foreground break-all">
+                                    {currentProgress.consensusData.leader}
+                                  </p>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        <div>
                           <div className="mb-2 flex items-center justify-between">
                             <span className={`text-sm font-medium ${currentProgress?.error ? "text-destructive" : "text-foreground"}`}>
                               {currentProgress?.message}
@@ -507,14 +598,7 @@ export default function ArgentineanExperienceScreen() {
                           </div>
                         </div>
 
-                        {currentProgress?.txHash && (
-                          <div className="mb-4 rounded-lg bg-muted p-3">
-                            <p className="text-xs font-medium text-muted-foreground mb-1">Transaction Hash:</p>
-                            <p className="font-mono text-xs text-foreground break-all">{currentProgress.txHash}</p>
-                          </div>
-                        )}
-
-                        <div className="mt-4 space-y-2">
+                        <div className="space-y-2">
                           {["PENDING", "PROPOSING", "COMMITTING", "REVEALING", "ACCEPTED", "FINALIZED"].map((status) => {
                             const isCurrent = currentProgress?.status === status
                             const statusOrder = ["PENDING", "PROPOSING", "COMMITTING", "REVEALING", "ACCEPTED", "FINALIZED"]
@@ -560,67 +644,41 @@ export default function ArgentineanExperienceScreen() {
                           })}
                         </div>
 
-                        {currentProgress?.consensusData && (
-                          <div className="mt-6 space-y-4 border-t border-border pt-4">
-                            <h4 className="font-semibold text-foreground">Detalles del Consenso</h4>
-                            
-                            <div className="grid grid-cols-2 gap-4">
-                              <div className="rounded-lg bg-accent p-3">
-                                <p className="text-xs text-muted-foreground">Modo de Ejecución</p>
-                                <p className="font-medium text-foreground">{currentProgress.consensusData.executionMode || "N/A"}</p>
-                              </div>
-                              <div className="rounded-lg bg-accent p-3">
-                                <p className="text-xs text-muted-foreground">Votos Recibidos</p>
-                                <p className="font-medium text-foreground">
-                                  {currentProgress.consensusData.votesReceived}/{currentProgress.consensusData.totalValidators}
-                                </p>
-                              </div>
-                            </div>
-
-                            {currentProgress.consensusData.leader && (
-                              <div className="rounded-lg border-2 border-info bg-info/5 p-3">
-                                <p className="text-xs font-semibold text-info mb-2">LEADER</p>
-                                <p className="font-mono text-xs text-foreground break-all">{currentProgress.consensusData.leader}</p>
-                              </div>
-                            )}
-
-                            {currentProgress.consensusData.validators && currentProgress.consensusData.validators.length > 0 && (
-                              <div className="space-y-2">
-                                <p className="text-sm font-semibold text-foreground">Validadores</p>
-                                {currentProgress.consensusData.validators.map((validator, index) => (
-                                  <div key={index} className="rounded-lg border border-border bg-muted/30 p-3 space-y-2">
-                                    <div className="flex items-center justify-between">
-                                      <p className="font-mono text-xs text-foreground break-all flex-1">
-                                        {validator.address}
-                                      </p>
-                                      {validator.llmProvider && (
-                                        <span className="ml-2 rounded-full bg-accent px-2 py-1 text-xs text-muted-foreground">
-                                          {validator.llmProvider}
-                                        </span>
-                                      )}
-                                    </div>
-                                    {validator.vote !== undefined && (
-                                      <div className="rounded bg-accent/50 p-2">
-                                        <p className="text-xs text-muted-foreground">Voto:</p>
-                                        <p className="font-mono text-xs text-foreground">{JSON.stringify(validator.vote, null, 2)}</p>
-                                      </div>
-                                    )}
+                        {currentProgress?.consensusData?.validators && currentProgress.consensusData.validators.length > 0 && (
+                          <div className="space-y-2 border-t border-border pt-4">
+                            <p className="text-sm font-semibold text-foreground">Validadores ({currentProgress.consensusData.validators.length})</p>
+                            {currentProgress.consensusData.validators.map((validator, index) => (
+                              <div key={index} className="rounded-lg border border-border bg-muted/30 p-3 space-y-2">
+                                <div className="flex items-center justify-between">
+                                  <p className="font-mono text-xs text-foreground break-all flex-1">
+                                    {validator.address}
+                                  </p>
+                                  {validator.llmProvider && (
+                                    <span className="ml-2 rounded-full bg-accent px-2 py-1 text-xs text-muted-foreground">
+                                      {validator.llmProvider}
+                                    </span>
+                                  )}
+                                </div>
+                                {validator.vote !== undefined && (
+                                  <div className="rounded bg-accent/50 p-2">
+                                    <p className="text-xs text-muted-foreground">Voto:</p>
+                                    <p className="font-mono text-xs text-foreground">{JSON.stringify(validator.vote, null, 2)}</p>
                                   </div>
-                                ))}
+                                )}
                               </div>
-                            )}
-
-                            {currentProgress.consensusData.finalResult !== undefined && (
-                              <div className="rounded-lg border-2 border-success bg-success/5 p-3">
-                                <p className="text-xs font-semibold text-success mb-2">RESULTADO FINAL</p>
-                                <pre className="font-mono text-xs text-foreground overflow-auto">
-                                  {JSON.stringify(currentProgress.consensusData.finalResult, null, 2)}
-                                </pre>
-                              </div>
-                            )}
+                            ))}
                           </div>
                         )}
-                      </>
+
+                        {currentProgress?.consensusData?.finalResult !== undefined && (
+                          <div className="rounded-lg border-2 border-success bg-success/5 p-3">
+                            <p className="text-xs font-semibold text-success mb-2">RESULTADO FINAL</p>
+                            <pre className="font-mono text-xs text-foreground overflow-auto">
+                              {JSON.stringify(currentProgress.consensusData.finalResult, null, 2)}
+                            </pre>
+                          </div>
+                        )}
+                      </div>
                     )
                   })()}
                 </CardContent>
