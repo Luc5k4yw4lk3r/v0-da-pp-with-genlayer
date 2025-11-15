@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Loader2, Upload, X, ImageIcon, Copy, CheckCircle2, XCircle, ChevronRight, ChevronDown } from "lucide-react"
+import { Loader2, Upload, X, ImageIcon, Copy, CheckCircle2, XCircle, ChevronRight, ChevronDown } from 'lucide-react'
 import type { LeaderboardEntry } from "@/lib/redis"
 import Leaderboard from "./leaderboard"
 
@@ -139,21 +139,20 @@ export default function ArgentineanExperienceScreen() {
       setLastTags(tags || [])
       setTransactionDetails(null)
 
-      // Generar un hash de transacción si no está disponible (para mostrar consenso)
-      // En producción, esto vendría del resultado real de la transacción
-      const txHash = evaluationResult.transactionHash || `0x${Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join('')}`
-
-      // Obtener los detalles de la transacción (incluyendo consenso)
+      // For read-only calls, we'll show mock consensus data for demo purposes
       setLoadingTransactionDetails(true)
       try {
-        const details = await proofOfExperience.getTransactionDetails(txHash)
+        // Generate a mock transaction hash for demo
+        const mockTxHash = `0x${Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join('')}`
+        
+        // Get mock transaction details (will always return mock data for read calls)
+        const details = await proofOfExperience.getTransactionDetails(mockTxHash)
         if (details) {
           setTransactionDetails(details)
-          // Actualizar el resultado con los detalles
-          setResult({ ...evaluationResult, transactionHash: txHash, transactionDetails: details })
         }
       } catch (err) {
-        console.error("[v0] Error loading transaction details:", err)
+        console.log("[v0] Could not load transaction details, continuing without them")
+        // Don't set error - transaction details are optional for demo
       } finally {
         setLoadingTransactionDetails(false)
       }

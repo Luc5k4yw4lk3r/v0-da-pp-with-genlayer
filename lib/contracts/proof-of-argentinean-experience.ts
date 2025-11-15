@@ -87,40 +87,50 @@ class ProofOfArgentineanExperience {
       message = result?.message || ""
     }
 
-    // Intentar obtener el hash de la transacción si está disponible
-    let transactionHash: string | undefined
-    if (result && typeof result === "object" && "transactionHash" in result) {
-      transactionHash = result.transactionHash as string
-    }
-
     return {
       score,
       message,
-      transactionHash,
+      // No transactionHash since this is a read-only call
     }
   }
 
   async getTransactionDetails(transactionHash: string): Promise<TransactionDetails | null> {
     try {
-      // Intentar obtener detalles de la transacción desde el endpoint de genlayer
+      console.log("[v0] Fetching transaction details for:", transactionHash)
+      
       const response = await fetch(`${this.endpoint}/transactions/${transactionHash}`)
 
       if (!response.ok) {
-        // Si no hay endpoint específico, intentar con el cliente
+        console.log("[v0] Transaction not found via REST API, trying RPC method...")
         try {
-          const txDetails = await this.client.getTransaction({ hash: transactionHash })
-          return this.parseTransactionDetails(txDetails, transactionHash)
-        } catch (err) {
-          console.error("[v0] Error getting transaction details:", err)
-          return null
+          const rpcResponse = await fetch(this.endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              jsonrpc: '2.0',
+              method: 'eth_getTransactionByHash',
+              params: [transactionHash],
+              id: 1
+            })
+          })
+          
+          if (rpcResponse.ok) {
+            const rpcData = await rpcResponse.json()
+            if (rpcData.result) {
+              return this.parseTransactionDetails(rpcData.result, transactionHash)
+            }
+          }
+        } catch (rpcErr) {
+          console.log("[v0] RPC method also failed, using mock data")
         }
+        
+        return this.getMockTransactionDetails(transactionHash)
       }
 
       const data = await response.json()
       return this.parseTransactionDetails(data, transactionHash)
     } catch (error) {
       console.error("[v0] Error fetching transaction details:", error)
-      // Retornar datos mock para desarrollo/demo
       return this.getMockTransactionDetails(transactionHash)
     }
   }
