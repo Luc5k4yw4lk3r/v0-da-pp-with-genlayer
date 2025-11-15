@@ -56,26 +56,30 @@ export default function ArgentineanExperienceScreen() {
   const [eligibleTracks, setEligibleTracks] = useState<string[]>([])
   const [checkingEligibility, setCheckingEligibility] = useState(false)
 
-  const { evaluate, loading: evaluating, error, consensusProgress } = useProofOfArgentineanExperience()
+  const [componentError, setComponentError] = useState<string | null>(null)
+
+  const { evaluate, loading: evaluating, error: hookError, consensusProgress } = useProofOfArgentineanExperience()
 
   const t = useTranslations()
+
+  const error = hookError || componentError
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
 
     if (!file.type.startsWith("image/")) {
-      setError(t.imageError)
+      setComponentError(t.imageError)
       return
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      setError(t.imageSizeError)
+      setComponentError(t.imageSizeError)
       return
     }
 
     setAnalyzingImage(true)
-    setError(null)
+    setComponentError(null)
     setImageAnalysis(null)
 
     try {
@@ -104,7 +108,7 @@ export default function ArgentineanExperienceScreen() {
       setTagsInput(analysis.tags.join(", "))
     } catch (err: any) {
       console.error("[v0] Error uploading image:", err)
-      setError(err.message || "Error al analizar la imagen")
+      setComponentError(err.message || "Error al analizar la imagen")
     } finally {
       setAnalyzingImage(false)
     }
@@ -125,6 +129,7 @@ export default function ArgentineanExperienceScreen() {
     setResult(null)
     setIsEligibleForLeaderboard(false)
     setEligibleTracks([])
+    setComponentError(null)
 
     try {
       const tags = tagsInput
@@ -233,7 +238,7 @@ export default function ArgentineanExperienceScreen() {
     setDescription(desc)
     setTagsInput(tags ? tags.join(", ") : "")
     setResult(null)
-    setError(null)
+    setComponentError(null)
     handleClearImage()
   }
 
