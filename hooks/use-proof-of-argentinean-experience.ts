@@ -17,6 +17,8 @@ interface ConsensusProgress {
   completed?: boolean
   status?: string
   error?: boolean
+  consensusData?: any
+  txHash?: string
 }
 
 export function useProofOfArgentineanExperience(account: any = null) {
@@ -31,39 +33,6 @@ export function useProofOfArgentineanExperience(account: any = null) {
     setClient(newClient)
     console.log("[v0] Client created with account:", newClient.account.address)
   }, [account])
-
-  const evaluate = useCallback(
-    async (description: string, tags: string[] | null = null): Promise<EvaluationResult> => {
-      if (!client) {
-        throw new Error("Client not initialized")
-      }
-
-      setLoading(true)
-      setError(null)
-      setConsensusProgress(null)
-
-      try {
-        console.log("[v0] Using account:", client.account.address)
-        const result = await client.evaluate(description, tags, (progress) => {
-          console.log("[v0] Consensus progress:", progress)
-          setConsensusProgress(progress)
-        })
-        return result
-      } catch (err: any) {
-        const errorMessage = err.message || "Error al evaluar la experiencia"
-        setError(errorMessage)
-        setConsensusProgress({
-          message: errorMessage,
-          progress: 0,
-          error: true,
-        })
-        throw err
-      } finally {
-        setLoading(false)
-      }
-    },
-    [client]
-  )
 
   const evaluateWithTracking = useCallback(
     async (description: string, tags: string[] | null = null): Promise<EvaluationResult> => {
@@ -99,7 +68,6 @@ export function useProofOfArgentineanExperience(account: any = null) {
   )
 
   return { 
-    evaluate, 
     evaluateWithTracking, 
     loading, 
     error, 

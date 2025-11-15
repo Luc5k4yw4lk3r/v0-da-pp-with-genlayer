@@ -53,6 +53,7 @@ interface ConsensusData {
   executionMode?: string
   votesReceived?: number
   totalValidators?: number
+  fullTxData?: any
 }
 
 export default function ArgentineanExperienceScreen() {
@@ -176,6 +177,10 @@ export default function ArgentineanExperienceScreen() {
       setResult(evaluationResult)
       setLastDescription(description)
       setLastTags(tags || [])
+
+      if (consensusProgress?.completed && consensusProgress?.consensusData?.fullTxData) {
+        setFullTxData(consensusProgress.consensusData.fullTxData)
+      }
 
       if (consensusProgress?.completed) {
         setCompletedConsensus(consensusProgress)
