@@ -1,4 +1,4 @@
-import { createClient, privateKeyToAccount, generatePrivateKey } from "genlayer-js"
+import { createClient, createAccount } from "genlayer-js"
 import { studionet } from "genlayer-js/chains"
 
 interface ConsensusProgress {
@@ -20,8 +20,8 @@ class ProofOfArgentineanExperience {
     this.contractAddress = contractAddress
 
     if (!account) {
-      const privateKey = generatePrivateKey()
-      account = privateKeyToAccount(privateKey)
+      account = createAccount()
+      console.log("[v0] Generated account address:", account.address)
     }
     
     this.account = account
