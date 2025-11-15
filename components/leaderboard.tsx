@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Trophy, Medal, Award, User } from "lucide-react"
+import { Trophy, Medal, Award, User } from 'lucide-react'
 import type { LeaderboardEntry } from "@/lib/redis"
 import { TRACKS } from "@/lib/redis"
 import { useTranslations } from "@/lib/i18n"
@@ -122,7 +122,7 @@ export default function Leaderboard({ onRefreshReady }: LeaderboardProps) {
                         <span className={`mt-1 text-2xl font-bold ${getScoreColor(entry.score)}`}>{entry.score}</span>
                       </div>
 
-                      {entry.imageUrl && (
+                      {entry.imageUrl && !entry.imageUrl.includes('[truncated]') && (
                         <div className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-md border border-border">
                           <img
                             src={entry.imageUrl || "/placeholder.svg"}

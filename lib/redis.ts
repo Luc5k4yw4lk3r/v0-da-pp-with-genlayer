@@ -89,7 +89,6 @@ export async function getLeaderboard(track: Track): Promise<LeaderboardEntry[]> 
 
     console.log("[v0] Getting leaderboard for:", { track, key })
 
-    // Get top 5 in descending order
     const entries = await redis.zrange(key, 0, MAX_ENTRIES_PER_TRACK - 1, {
       rev: true,
     })
@@ -102,12 +101,22 @@ export async function getLeaderboard(track: Track): Promise<LeaderboardEntry[]> 
 
     return entries.map((entry) => {
       try {
-        // If entry is already an object, return it
+        let parsed: LeaderboardEntry
+        // If entry is already an object, use it
         if (typeof entry === "object" && entry !== null) {
-          return entry as LeaderboardEntry
+          parsed = entry as LeaderboardEntry
+        } else {
+          // Otherwise parse it as JSON string
+          parsed = JSON.parse(entry as string) as LeaderboardEntry
         }
-        // Otherwise parse it as JSON string
-        return JSON.parse(entry as string) as LeaderboardEntry
+        
+        // We keep it in storage but don't send the full base64 in list views
+        if (parsed.imageUrl && parsed.imageUrl.startsWith('data:image')) {
+          // Keep first 100 chars to identify it's a data URL, but don't send full base64
+          parsed.imageUrl = parsed.imageUrl.substring(0, 100) + '...[truncated]'
+        }
+        
+        return parsed
       } catch (parseError) {
         console.error("[v0] Error parsing entry:", entry, parseError)
         return {
@@ -136,6 +145,8 @@ export async function getAllLeaderboards(): Promise<Record<Track, LeaderboardEnt
         const entries = await getLeaderboard(track)
         result[track] = entries || []
         console.log(`[v0] Got ${entries?.length || 0} entries for ${track}`)
+        
+        await new Promise(resolve => setTimeout(resolve, 50))
       } catch (error) {
         console.error(`[v0] Error getting leaderboard for ${track}:`, error)
         result[track] = []

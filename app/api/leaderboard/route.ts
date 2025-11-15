@@ -43,11 +43,22 @@ export async function GET(request: NextRequest) {
     if (track) {
       console.log("[v0] Getting leaderboard for track:", track)
       const leaderboard = await getLeaderboard(track)
-      return NextResponse.json({ track, entries: leaderboard || [] })
+      return NextResponse.json(
+        { track, entries: leaderboard || [] },
+        {
+          headers: {
+            'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=120'
+          }
+        }
+      )
     } else {
       console.log("[v0] Getting all leaderboards")
       const allLeaderboards = await getAllLeaderboards()
-      return NextResponse.json(allLeaderboards || {})
+      return NextResponse.json(allLeaderboards || {}, {
+        headers: {
+          'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=120'
+        }
+      })
     }
   } catch (error: any) {
     console.error("[v0] Error in GET /api/leaderboard:", error)
