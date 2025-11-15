@@ -81,6 +81,7 @@ export default function ArgentineanExperienceScreen() {
   const [completedConsensus, setCompletedConsensus] = useState<ConsensusProgress | null>(null)
 
   const [copiedTxHash, setCopiedTxHash] = useState(false)
+  const [fullTxData, setFullTxData] = useState<any>(null)
 
   const { evaluateWithTracking, loading: evaluating, error: hookError, consensusProgress } = useProofOfArgentineanExperience()
 
@@ -156,6 +157,7 @@ export default function ArgentineanExperienceScreen() {
     setComponentError(null)
     setShowConsensusPanel(true)
     setCompletedConsensus(null)
+    setFullTxData(null)
 
     try {
       const tags = tagsInput
@@ -645,28 +647,62 @@ export default function ArgentineanExperienceScreen() {
                         </div>
 
                         {currentProgress?.consensusData?.validators && currentProgress.consensusData.validators.length > 0 && (
-                          <div className="space-y-2 border-t border-border pt-4">
-                            <p className="text-sm font-semibold text-foreground">Validadores ({currentProgress.consensusData.validators.length})</p>
-                            {currentProgress.consensusData.validators.map((validator, index) => (
-                              <div key={index} className="rounded-lg border border-border bg-muted/30 p-3 space-y-2">
-                                <div className="flex items-center justify-between">
-                                  <p className="font-mono text-xs text-foreground break-all flex-1">
-                                    {validator.address}
-                                  </p>
-                                  {validator.llmProvider && (
-                                    <span className="ml-2 rounded-full bg-accent px-2 py-1 text-xs text-muted-foreground">
-                                      {validator.llmProvider}
-                                    </span>
-                                  )}
-                                </div>
-                                {validator.vote !== undefined && (
-                                  <div className="rounded bg-accent/50 p-2">
-                                    <p className="text-xs text-muted-foreground">Voto:</p>
-                                    <p className="font-mono text-xs text-foreground">{JSON.stringify(validator.vote, null, 2)}</p>
-                                  </div>
-                                )}
+                          <div className="space-y-3 border-t border-border pt-4">
+                            <p className="text-sm font-semibold text-foreground">Consensus History</p>
+                            
+                            {currentProgress.consensusData.executionMode && (
+                              <div className="flex gap-2 flex-wrap mb-2">
+                                <span className="inline-flex items-center rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground border border-border">
+                                  {currentProgress.consensusData.executionMode}
+                                </span>
+                                <span className="inline-flex items-center rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground border border-border">
+                                  COMMITTING
+                                </span>
+                                <span className="inline-flex items-center rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground border border-border">
+                                  REVEALING
+                                </span>
+                                <span className="inline-flex items-center rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground border border-border">
+                                  UNDETERMINED
+                                </span>
                               </div>
-                            ))}
+                            )}
+
+                            <div className="space-y-2">
+                              {currentProgress.consensusData.validators.map((validator, index) => (
+                                <div key={index} className="flex items-center justify-between rounded-lg border border-border bg-muted/30 p-3">
+                                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                                    <svg className="h-4 w-4 flex-shrink-0 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                    </svg>
+                                    <p className="font-mono text-xs text-foreground truncate" title={validator.address}>
+                                      {validator.address}
+                                    </p>
+                                  </div>
+                                  <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                                    <button className="flex items-center gap-1 rounded-md bg-destructive/10 px-2 py-1 text-xs font-medium text-destructive border border-destructive hover:bg-destructive/20 transition-colors">
+                                      <X className="h-3 w-3" />
+                                      <span>Disagree</span>
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {currentProgress?.completed && fullTxData && (
+                          <div className="space-y-2 border-t border-border pt-4">
+                            <p className="text-sm font-semibold text-foreground">Full Transaction Data</p>
+                            <div className="rounded-lg border border-border bg-muted/30 p-3">
+                              <details>
+                                <summary className="cursor-pointer text-xs font-mono text-muted-foreground hover:text-foreground">
+                                  ▸ {...}
+                                </summary>
+                                <pre className="mt-2 overflow-auto text-xs font-mono text-foreground max-h-64">
+                                  {JSON.stringify(fullTxData, null, 2)}
+                                </pre>
+                              </details>
+                            </div>
                           </div>
                         )}
 
@@ -778,9 +814,7 @@ export default function ArgentineanExperienceScreen() {
                         <span className="ml-2 text-muted-foreground">{t.example2}</span>
                       </Button>
                       <Button
-                        onClick={() =>
-                          loadExample("Comiendo asado con familia en un domingo de verano.", ["food", "customs"])
-                        }
+                        onClick={() => loadExample("Comiendo asado con familia en un domingo de verano.", ["food", "customs"])}
                         variant="outline"
                         className="w-full justify-start text-left"
                       >

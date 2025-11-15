@@ -26,6 +26,7 @@ interface ConsensusData {
   executionMode?: string
   votesReceived?: number
   totalValidators?: number
+  fullTxData?: any
 }
 
 class ProofOfArgentineanExperience {
@@ -134,6 +135,7 @@ class ProofOfArgentineanExperience {
       const consensusData: ConsensusData = {
         finalResult: txData.result,
         validators: [],
+        fullTxData: txData,
       }
 
       // Obtener datos del consensus_data si existe
