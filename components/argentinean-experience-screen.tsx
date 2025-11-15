@@ -491,6 +491,7 @@ export default function ArgentineanExperienceScreen() {
                       value={tagsInput}
                       onChange={(e) => setTagsInput(e.target.value)}
                       placeholder="E.g.: Sports, food, Touristic locations"
+                      readOnly
                     />
                     <p className="mt-1 text-xs text-muted-foreground">
                       Suggested tracks: {TRACKS.join(", ")}
@@ -656,7 +657,7 @@ export default function ArgentineanExperienceScreen() {
                         <div>
                           <label className="mb-1 block text-xs font-medium text-muted-foreground">Status</label>
                           <div
-                            className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${transactionDetails.status === "FINALIZED"
+                            className={`inline-flex items-center rounded-full px-3 py-1.5 text-xs font-medium ${transactionDetails.status === "FINALIZED"
                               ? "bg-destructive/10 text-destructive"
                               : "bg-muted text-muted-foreground"
                               }`}
@@ -667,7 +668,7 @@ export default function ArgentineanExperienceScreen() {
                         <div>
                           <label className="mb-1 block text-xs font-medium text-muted-foreground">Execution</label>
                           <div
-                            className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${transactionDetails.execution === "SUCCESS"
+                            className={`inline-flex items-center rounded-full px-3 py-1.5 text-xs font-medium ${transactionDetails.execution === "SUCCESS"
                               ? "bg-success/10 text-success"
                               : "bg-destructive/10 text-destructive"
                               }`}
