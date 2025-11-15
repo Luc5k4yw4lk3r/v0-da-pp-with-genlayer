@@ -184,7 +184,21 @@ export default function ArgentineanExperienceScreen() {
       }
     } catch (err: any) {
       console.error("[v0] Error evaluating experience:", err)
-      setError(err.message || "Error evaluating the experience. Please try again.")
+
+      // Provide more user-friendly error messages
+      let errorMessage = "Error evaluating the experience. Please try again."
+
+      if (err?.message) {
+        if (err.message.includes("GenLayer RPC error") || err.message.includes("gen_call")) {
+          errorMessage = "Unable to connect to GenLayer. Please check your internet connection and try again. If the problem persists, the GenLayer service may be temporarily unavailable."
+        } else if (err.message.includes("contract")) {
+          errorMessage = `Contract error: ${err.message}. Please verify the contract address is correct.`
+        } else {
+          errorMessage = err.message
+        }
+      }
+
+      setError(errorMessage)
     } finally {
       setEvaluating(false)
     }

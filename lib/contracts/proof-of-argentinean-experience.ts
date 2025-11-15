@@ -46,7 +46,13 @@ class ProofOfArgentineanExperience {
 
   constructor(contractAddress: string, account: any = null) {
     this.contractAddress = contractAddress
-    this.endpoint = "https://devconnect-25-studio.genlayer.com/api"
+    // Allow endpoint to be configured via environment variable, fallback to default
+    this.endpoint =
+      (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_GENLAYER_ENDPOINT) ||
+      "https://devconnect-25-studio.genlayer.com/api"
+
+    console.log("[v0] GenLayer endpoint:", this.endpoint)
+    console.log("[v0] Contract address:", this.contractAddress)
 
     const config: any = {
       chain: studionet,
@@ -54,7 +60,12 @@ class ProofOfArgentineanExperience {
       ...(account ? { account } : {}),
     }
 
-    this.client = createClient(config)
+    try {
+      this.client = createClient(config)
+    } catch (error) {
+      console.error("[v0] Error creating GenLayer client:", error)
+      throw new Error(`Failed to initialize GenLayer client: ${error instanceof Error ? error.message : String(error)}`)
+    }
   }
 
   updateAccount(account: any) {
@@ -67,10 +78,10 @@ class ProofOfArgentineanExperience {
 
   async evaluate(description: string, tags: string[] | null = null, imageQuality?: number): Promise<EvaluationResult> {
     // Convert imageQuality to integer 0-100, default to null if not provided
-    const qualityInt = imageQuality !== undefined && imageQuality !== null 
-      ? Math.round(imageQuality * 100) 
+    const qualityInt = imageQuality !== undefined && imageQuality !== null
+      ? Math.round(imageQuality * 100)
       : null
-    
+
     // Always pass all three arguments in order
     const args: any[] = [
       description,
@@ -81,6 +92,13 @@ class ProofOfArgentineanExperience {
     console.log("[v0] Calling contract with args:", args)
 
     try {
+      console.log("[v0] Calling contract:", {
+        address: this.contractAddress,
+        functionName: "evaluate",
+        args,
+        endpoint: this.endpoint
+      })
+
       const result = await this.client.readContract({
         address: this.contractAddress,
         functionName: "evaluate",
@@ -109,8 +127,27 @@ class ProofOfArgentineanExperience {
         message,
       }
     } catch (error: any) {
-      console.error("[v0] Contract call error:", error)
-      throw new Error(error.message || "Failed to evaluate experience. Please check the contract configuration.")
+      console.error("[v0] Contract call error:", {
+        error,
+        message: error?.message,
+        stack: error?.stack,
+        endpoint: this.endpoint,
+        contractAddress: this.contractAddress
+      })
+
+      // Provide more specific error messages
+      if (error?.message?.includes("gen_call") || error?.message?.includes("RPC")) {
+        throw new Error(
+          `GenLayer RPC error: Unable to connect to ${this.endpoint}. ` +
+          `Please check your network connection and ensure the GenLayer endpoint is accessible. ` +
+          `Error: ${error.message || "Unknown error"}`
+        )
+      }
+
+      throw new Error(
+        error?.message ||
+        `Failed to evaluate experience. Please check the contract configuration and ensure the contract is deployed at ${this.contractAddress}.`
+      )
     }
   }
 
