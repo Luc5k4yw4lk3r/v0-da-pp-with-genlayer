@@ -75,7 +75,9 @@ class ProofOfArgentineanExperience {
       args.push(null)
     }
     if (imageQuality !== undefined && imageQuality !== null) {
-      args.push(imageQuality)
+      // Convert float (0.0-1.0) to int (0-100) for GenVM compatibility
+      const qualityInt = Math.round(imageQuality * 100)
+      args.push(qualityInt)
     }
 
     const result = await this.client.readContract({

@@ -8,22 +8,25 @@ class ProofOfArgentineanExperience(gl.Contract):
         pass
 
     def _evaluate_experience(
-        self, description: str, tags: list[str] = None, image_quality: float = None
+        self, description: str, tags: list[str] = None, image_quality: int = None
     ) -> dict:
         """
         Internal method that performs the evaluation using the LLM.
+        image_quality: integer from 0 to 100 representing image quality (0.0 to 1.0 scaled by 100)
         """
         tags_str = ", ".join(tags) if tags else "none"
         num_tags = len(tags) if tags else 0
 
         # Calculate quality penalty info
+        # image_quality is stored as 0-100 (representing 0.0-1.0)
         quality_info = ""
         if image_quality is not None:
-            if image_quality < 0.5:
-                penalty_percent = int((0.5 - image_quality) * 100)
-                quality_info = f"\nImage Quality: {image_quality:.2f} (LOW QUALITY - will reduce score by approximately {penalty_percent}%)"
+            quality_float = image_quality / 100.0  # Convert back to 0.0-1.0 for display
+            if quality_float < 0.5:
+                penalty_percent = int((0.5 - quality_float) * 100)
+                quality_info = f"\nImage Quality: {quality_float:.2f} (LOW QUALITY - will reduce score by approximately {penalty_percent}%)"
             else:
-                quality_info = f"\nImage Quality: {image_quality:.2f} (acceptable)"
+                quality_info = f"\nImage Quality: {quality_float:.2f} (acceptable)"
 
         task = f"""
 Analyze the following description and determine if it represents a culturally Argentine experience.
@@ -43,7 +46,7 @@ Instructions:
    - 96–100: EXCEPTIONAL - requires MORE THAN 4 distinct Argentine cultural elements AND must be a national icon or extremely strong cultural symbol.
 
 4. Apply adjustments:
-   - If image_quality < 0.5: Reduce the BASE score proportionally. For example, if quality is 0.3 (20% below 0.5), reduce score by approximately 20%. If quality is 0.2, reduce by approximately 30%.
+   - If image_quality < 50 (representing 0.5 on a 0-100 scale): Reduce the BASE score proportionally. For example, if quality is 30 (representing 0.3, 20% below 0.5), reduce score by approximately 20%. If quality is 20 (representing 0.2), reduce by approximately 30%.
    - If there are 2 tags: Add +5 points to the adjusted score.
    - IMPORTANT: To reach 100 points, the description MUST mention MORE THAN 4 distinct Argentine cultural elements AND represent a national icon or extremely strong cultural symbol.
 
@@ -102,7 +105,7 @@ IMPORTANT:
 
     @gl.public.view
     def evaluate(
-        self, description: str, tags: list[str] = None, image_quality: float = None
+        self, description: str, tags: list[str] = None, image_quality: int = None
     ) -> dict:
         """
         Evaluates if a description represents a culturally Argentine experience.
@@ -110,7 +113,7 @@ IMPORTANT:
         Args:
             description: brief descriptive text of the experience
             tags: optional reference categories (food, sports, devconnect_crypto, etc.)
-            image_quality: optional image quality score (0.0 to 1.0)
+            image_quality: optional image quality score (0 to 100, representing 0.0 to 1.0)
 
         Returns:
             dict with fields:

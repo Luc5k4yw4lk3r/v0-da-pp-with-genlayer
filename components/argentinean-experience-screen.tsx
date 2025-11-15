@@ -14,7 +14,7 @@ import type { LeaderboardEntry, Track } from "@/lib/redis"
 import { TRACKS } from "@/lib/redis"
 import Leaderboard from "./leaderboard"
 
-const contractAddress = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || "0xA3E6713d0E67002d3C707e64D8E41530385F6CFB"
+const contractAddress = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || "0x9F8f36bb4641951d27d7185CCf37e68BbDA184Fb"
 
 interface ImageAnalysisResult {
   description: string
