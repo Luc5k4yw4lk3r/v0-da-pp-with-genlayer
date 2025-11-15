@@ -6,26 +6,53 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Trophy, Medal, Award, User } from "lucide-react"
 import type { LeaderboardEntry } from "@/lib/redis"
 import { TRACKS } from "@/lib/redis"
+import { useTranslations } from "@/lib/i18n"
 
-export default function Leaderboard() {
+interface LeaderboardProps {
+  onRefreshReady?: (refreshFn: () => void) => void
+}
+
+export default function Leaderboard({ onRefreshReady }: LeaderboardProps) {
+  const t = useTranslations()
+
   const [leaderboards, setLeaderboards] = useState<Record<string, LeaderboardEntry[]>>({})
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    fetchLeaderboards()
-  }, [])
-
   const fetchLeaderboards = async () => {
     try {
+      console.log("[v0] Fetching leaderboards...")
       const response = await fetch("/api/leaderboard")
+
+      if (!response.ok) {
+        console.error("[v0] API returned error:", response.status, response.statusText)
+        // Try to get error message
+        const text = await response.text()
+        console.error("[v0] Error response:", text)
+        throw new Error(`API error: ${response.status}`)
+      }
+
       const data = await response.json()
+      console.log("[v0] Leaderboards fetched successfully:", Object.keys(data).length, "tracks")
       setLeaderboards(data)
     } catch (error) {
       console.error("[v0] Error fetching leaderboards:", error)
+      // Set empty leaderboards on error to prevent UI issues
+      const emptyData: Record<string, LeaderboardEntry[]> = {}
+      TRACKS.forEach((track) => {
+        emptyData[track] = []
+      })
+      setLeaderboards(emptyData)
     } finally {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    fetchLeaderboards()
+    if (onRefreshReady) {
+      onRefreshReady(fetchLeaderboards)
+    }
+  }, [])
 
   const getRankIcon = (rank: number) => {
     switch (rank) {
@@ -51,8 +78,8 @@ export default function Leaderboard() {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Leaderboards</CardTitle>
-          <CardDescription>Cargando rankings...</CardDescription>
+          <CardTitle>{t.leaderboardTitle}</CardTitle>
+          <CardDescription>{t.loadingRankings}</CardDescription>
         </CardHeader>
       </Card>
     )
@@ -63,9 +90,9 @@ export default function Leaderboard() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Trophy className="h-6 w-6 text-yellow-500" />
-          Leaderboards - Top 5
+          {t.leaderboardTitle}
         </CardTitle>
-        <CardDescription>Los mejores puntajes por categoría</CardDescription>
+        <CardDescription>{t.leaderboardDescription}</CardDescription>
       </CardHeader>
       <CardContent>
         <Tabs defaultValue={TRACKS[0]} className="w-full">
@@ -116,7 +143,7 @@ export default function Leaderboard() {
                               {entry.username}
                             </p>
                           ) : (
-                            <p className="text-sm text-muted-foreground italic">Anónimo</p>
+                            <p className="text-sm text-muted-foreground italic">{t.anonymous}</p>
                           )}
                         </div>
                         <p className="text-sm text-foreground line-clamp-2">{entry.description}</p>
@@ -138,7 +165,7 @@ export default function Leaderboard() {
                           </div>
                         )}
                         <p className="mt-1 text-xs text-muted-foreground">
-                          {new Date(entry.timestamp).toLocaleDateString("es-AR")}
+                          {new Date(entry.timestamp).toLocaleDateString()}
                         </p>
                       </div>
                     </div>
@@ -147,8 +174,8 @@ export default function Leaderboard() {
               ) : (
                 <div className="flex flex-col items-center justify-center py-12 text-center">
                   <Trophy className="h-12 w-12 text-muted-foreground/50 mb-3" />
-                  <p className="text-muted-foreground">No hay entradas en este track todavía</p>
-                  <p className="text-sm text-muted-foreground">¡Sé el primero en subir tu experiencia!</p>
+                  <p className="text-muted-foreground">{t.noEntries}</p>
+                  <p className="text-sm text-muted-foreground">{t.beFirst}</p>
                 </div>
               )}
             </TabsContent>

@@ -131,30 +131,22 @@ export async function getAllLeaderboards(): Promise<Record<Track, LeaderboardEnt
 
     const result: Record<string, LeaderboardEntry[]> = {}
 
-    const promises = TRACKS.map(async (track) => {
+    for (const track of TRACKS) {
       try {
         const entries = await getLeaderboard(track)
-        return { track, entries, success: true }
+        result[track] = entries || []
+        console.log(`[v0] Got ${entries?.length || 0} entries for ${track}`)
       } catch (error) {
         console.error(`[v0] Error getting leaderboard for ${track}:`, error)
-        return { track, entries: [], success: false }
+        result[track] = []
       }
-    })
-
-    const results = await Promise.allSettled(promises)
-
-    results.forEach((promiseResult) => {
-      if (promiseResult.status === "fulfilled") {
-        const { track, entries } = promiseResult.value
-        result[track] = entries
-      }
-    })
+    }
 
     console.log("[v0] All leaderboards retrieved successfully")
 
     return result as Record<Track, LeaderboardEntry[]>
   } catch (error) {
-    console.error("[v0] Error in getAllLeaderboards:", error)
+    console.error("[v0] Critical error in getAllLeaderboards:", error)
     const emptyResult: Record<string, LeaderboardEntry[]> = {}
     TRACKS.forEach((track) => {
       emptyResult[track] = []
