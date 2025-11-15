@@ -17,6 +17,8 @@ interface ValidatorVote {
   address: string
   vote: any
   llmProvider?: string
+  executionResult?: string
+  error?: string
 }
 
 interface ConsensusData {
@@ -135,13 +137,18 @@ class ProofOfArgentineanExperience {
       // Extract final result - could be in result, data.result, or receipt.result
       let finalResult = txData.result || txData.data?.result || txData.receipt?.result
 
+      // If result is just a number (like 6), convert it to an object with score
+      if (typeof finalResult === 'number') {
+        finalResult = { score: finalResult, message: "" }
+      }
+
       // If result is a Map-like structure, convert it
       if (finalResult && typeof finalResult === 'object' && !Array.isArray(finalResult)) {
         // Try to extract score and message
         if (finalResult.score !== undefined || finalResult.get) {
           finalResult = {
             score: finalResult.score || finalResult.get?.('score'),
-            message: finalResult.message || finalResult.get?.('message')
+            message: finalResult.message || finalResult.get?.('message') || ""
           }
         }
       }
@@ -152,21 +159,31 @@ class ProofOfArgentineanExperience {
         fullTxData: txData,
       }
 
-      // Extract leader information
+      // Extract leader information - leader_receipt can be an array
       let leaderVote = null
       let leaderAddress = null
+      let leaderReceipt = null
 
       if (txData.leader_receipt) {
-        leaderVote = txData.leader_receipt.vote
-        leaderAddress = leaderVote?.vote_address || txData.leader_receipt.leader_address || txData.activator
-        consensusData.leader = leaderAddress
+        // Handle both array and object formats
+        if (Array.isArray(txData.leader_receipt)) {
+          leaderReceipt = txData.leader_receipt.find((r: any) => r.mode === "leader") || txData.leader_receipt[0]
+        } else {
+          leaderReceipt = txData.leader_receipt
+        }
+
+        if (leaderReceipt) {
+          leaderVote = leaderReceipt.vote
+          leaderAddress = leaderReceipt.node_config?.address || leaderReceipt.address || txData.activator
+          consensusData.leader = leaderAddress
+        }
       } else if (txData.activator) {
         leaderAddress = txData.activator
         consensusData.leader = leaderAddress
       }
 
       // Get leader's result for comparison
-      const leaderResult = leaderVote?.vote || finalResult
+      const leaderResult = leaderVote || finalResult
 
       // Obtener datos del consensus_data si existe
       if (txData.consensus_data) {
@@ -188,25 +205,58 @@ class ProofOfArgentineanExperience {
         consensusData.validators?.push({
           address: leaderAddress,
           vote: leaderResult,
-          llmProvider: leaderVote?.llm_provider || "openai",
+          llmProvider: leaderReceipt?.node_config?.primary_model?.provider || "openai",
         })
       }
 
-      // Agregar votos de validadores del consensus_data
-      if (txData.consensus_data?.votes) {
-        const votesData = Array.isArray(txData.consensus_data.votes)
-          ? txData.consensus_data.votes
-          : Object.values(txData.consensus_data.votes || {})
+      // Agregar validadores del consensus_data.validators (array)
+      if (txData.consensus_data?.validators && Array.isArray(txData.consensus_data.validators)) {
+        for (const validator of txData.consensus_data.validators) {
+          const validatorAddress = validator.node_config?.address || validator.address
+          if (validatorAddress && validatorAddress !== leaderAddress) {
+            // Check if already added
+            const alreadyAdded = consensusData.validators?.some(v => v.address === validatorAddress)
+            if (!alreadyAdded) {
+              // Try to decode base64 result if present
+              let vote = validator.vote
+              if (validator.result && typeof validator.result === 'string' && validator.result.startsWith('A')) {
+                // This might be base64 encoded, but for now just use the vote
+                vote = validator.vote || "agree"
+              }
 
-        for (const vote of votesData) {
-          // Evitar duplicar el leader
-          const voteAddress = vote.vote_address || vote.address
-          if (voteAddress && voteAddress !== leaderAddress) {
-            consensusData.validators?.push({
-              address: voteAddress,
-              vote: vote.vote || vote.result,
-              llmProvider: vote.llm_provider,
-            })
+              // Extract error information if present
+              let error = null
+              if (validator.genvm_result?.stderr) {
+                error = validator.genvm_result.stderr
+              }
+
+              consensusData.validators?.push({
+                address: validatorAddress,
+                vote: vote,
+                llmProvider: validator.node_config?.primary_model?.provider || "openai",
+                executionResult: validator.execution_result,
+                error: error,
+              })
+            }
+          }
+        }
+      }
+
+      // Agregar votos de validadores del consensus_data.votes (objeto)
+      if (txData.consensus_data?.votes && !Array.isArray(txData.consensus_data.votes)) {
+        const votesData = Object.entries(txData.consensus_data.votes || {})
+
+        for (const [address, vote] of votesData) {
+          if (address && address !== leaderAddress) {
+            // Check if already added
+            const alreadyAdded = consensusData.validators?.some(v => v.address === address)
+            if (!alreadyAdded) {
+              consensusData.validators?.push({
+                address: address,
+                vote: vote,
+                llmProvider: "openai",
+              })
+            }
           }
         }
       }
@@ -214,7 +264,7 @@ class ProofOfArgentineanExperience {
       // Also check for validators in other possible locations
       if (txData.validators && Array.isArray(txData.validators)) {
         for (const validator of txData.validators) {
-          const validatorAddress = validator.address || validator.vote_address
+          const validatorAddress = validator.node_config?.address || validator.address || validator.vote_address
           if (validatorAddress && validatorAddress !== leaderAddress) {
             // Check if already added
             const alreadyAdded = consensusData.validators?.some(v => v.address === validatorAddress)
@@ -222,7 +272,7 @@ class ProofOfArgentineanExperience {
               consensusData.validators?.push({
                 address: validatorAddress,
                 vote: validator.vote || validator.result,
-                llmProvider: validator.llm_provider,
+                llmProvider: validator.node_config?.primary_model?.provider || "openai",
               })
             }
           }
@@ -318,11 +368,19 @@ class ProofOfArgentineanExperience {
 
       console.log("[v0] Final result:", result)
 
+      // Si el resultado es solo un número, convertirlo a objeto
+      if (typeof result === "number") {
+        return {
+          score: result,
+          message: "",
+        }
+      }
+
       // Convertir el resultado de Map a objeto si es necesario
       if (result instanceof Map) {
         return {
-          score: Number(result.get("score")),
-          message: result.get("message"),
+          score: Number(result.get("score") || 0),
+          message: result.get("message") || "",
         }
       }
 
@@ -331,6 +389,23 @@ class ProofOfArgentineanExperience {
         return {
           score: Number(result.score || result.get?.("score") || 0),
           message: result.message || result.get?.("message") || "",
+        }
+      }
+
+      // Si no hay resultado en el receipt, intentar obtenerlo del consensusData
+      if (consensusData?.finalResult) {
+        const final = consensusData.finalResult
+        if (typeof final === "number") {
+          return {
+            score: final,
+            message: "",
+          }
+        }
+        if (typeof final === "object") {
+          return {
+            score: Number(final.score || 0),
+            message: final.message || "",
+          }
         }
       }
 

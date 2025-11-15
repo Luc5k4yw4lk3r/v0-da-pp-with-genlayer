@@ -43,6 +43,8 @@ interface ValidatorVote {
   address: string
   vote: any
   llmProvider?: string
+  executionResult?: string
+  error?: string
 }
 
 interface ConsensusData {
@@ -681,9 +683,16 @@ export default function ArgentineanExperienceScreen() {
                                 const leaderVote = leaderValidator?.vote || currentProgress.consensusData?.finalResult
                                 const validatorVote = validator.vote
 
+                                // Check if validator has execution error
+                                const hasError = validator.executionResult === "ERROR" || validator.error
+
                                 // Normalize votes for comparison
                                 const normalizeVote = (vote: any) => {
                                   if (!vote) return null
+                                  // Handle string votes like "agree"
+                                  if (typeof vote === 'string' && (vote === 'agree' || vote === 'disagree')) {
+                                    return vote
+                                  }
                                   // If it's an object with score and message, extract those
                                   if (typeof vote === 'object' && !Array.isArray(vote)) {
                                     const score = vote.score ?? vote.get?.('score')
@@ -705,8 +714,12 @@ export default function ArgentineanExperienceScreen() {
                                 // Compare votes - check if validator's vote matches leader's
                                 let agrees = false
                                 if (normalizedLeaderVote && normalizedValidatorVote) {
+                                  // If both are strings (agree/disagree)
+                                  if (typeof normalizedLeaderVote === 'string' && typeof normalizedValidatorVote === 'string') {
+                                    agrees = normalizedLeaderVote === normalizedValidatorVote
+                                  }
                                   // If both are objects with score, compare scores
-                                  if (typeof normalizedLeaderVote === 'object' && typeof normalizedValidatorVote === 'object') {
+                                  else if (typeof normalizedLeaderVote === 'object' && typeof normalizedValidatorVote === 'object') {
                                     const leaderScore = normalizedLeaderVote.score ?? normalizedLeaderVote
                                     const validatorScore = normalizedValidatorVote.score ?? normalizedValidatorVote
                                     agrees = leaderScore === validatorScore
@@ -721,29 +734,48 @@ export default function ArgentineanExperienceScreen() {
                                   agrees = true
                                 }
 
+                                // If vote is "agree", show as agree
+                                if (validatorVote === "agree" || validatorVote === "AGREE") {
+                                  agrees = true
+                                }
+
                                 return (
-                                  <div key={index} className="flex items-center justify-between rounded-lg border border-border bg-muted/30 p-3">
-                                    <div className="flex items-center gap-2 flex-1 min-w-0">
-                                      <svg className="h-4 w-4 flex-shrink-0 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                                      </svg>
-                                      <p className="font-mono text-xs text-foreground truncate" title={validator.address}>
-                                        {validator.address}
-                                      </p>
+                                  <div key={index} className={`rounded-lg border p-3 ${hasError ? 'border-destructive/50 bg-destructive/5' : 'border-border bg-muted/30'}`}>
+                                    <div className="flex items-center justify-between">
+                                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                                        <svg className="h-4 w-4 flex-shrink-0 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                        </svg>
+                                        <p className="font-mono text-xs text-foreground truncate" title={validator.address}>
+                                          {validator.address}
+                                        </p>
+                                      </div>
+                                      <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                                        {hasError ? (
+                                          <button className="flex items-center gap-1 rounded-md bg-destructive/10 px-2 py-1 text-xs font-medium text-destructive border border-destructive">
+                                            <X className="h-3 w-3" />
+                                            <span>Error</span>
+                                          </button>
+                                        ) : agrees ? (
+                                          <button className="flex items-center gap-1 rounded-md bg-success/10 px-2 py-1 text-xs font-medium text-success border border-success">
+                                            <Check className="h-3 w-3" />
+                                            <span>Agree</span>
+                                          </button>
+                                        ) : (
+                                          <button className="flex items-center gap-1 rounded-md bg-destructive/10 px-2 py-1 text-xs font-medium text-destructive border border-destructive">
+                                            <X className="h-3 w-3" />
+                                            <span>Disagree</span>
+                                          </button>
+                                        )}
+                                      </div>
                                     </div>
-                                    <div className="flex items-center gap-2 flex-shrink-0 ml-2">
-                                      {agrees ? (
-                                        <button className="flex items-center gap-1 rounded-md bg-success/10 px-2 py-1 text-xs font-medium text-success border border-success">
-                                          <Check className="h-3 w-3" />
-                                          <span>Agree</span>
-                                        </button>
-                                      ) : (
-                                        <button className="flex items-center gap-1 rounded-md bg-destructive/10 px-2 py-1 text-xs font-medium text-destructive border border-destructive">
-                                          <X className="h-3 w-3" />
-                                          <span>Disagree</span>
-                                        </button>
-                                      )}
-                                    </div>
+                                    {hasError && validator.error && (
+                                      <div className="mt-2 rounded-md bg-destructive/10 p-2">
+                                        <p className="text-xs font-mono text-destructive break-all">
+                                          {validator.error.split('\n')[0]}
+                                        </p>
+                                      </div>
+                                    )}
                                   </div>
                                 )
                               })}

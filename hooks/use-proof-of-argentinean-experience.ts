@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from "react"
 import ProofOfArgentineanExperience from "@/lib/contracts/proof-of-argentinean-experience"
 
-const contractAddress = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || "0x1536C6e0e92030dc47375208C1172A1c6ebC10f2"
+const contractAddress = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || "0x74217C1863C43AC431c3BE8AAC419c99756B5190"
 const studioUrl = process.env.NEXT_PUBLIC_STUDIO_URL || null
 
 interface EvaluationResult {
