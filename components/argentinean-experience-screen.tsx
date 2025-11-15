@@ -3,19 +3,17 @@
 import type React from "react"
 
 import { useState, useRef } from "react"
-import ProofOfArgentineanExperience from "@/lib/contracts/proof-of-argentinean-experience"
+import { useProofOfArgentineanExperience } from "@/hooks/use-proof-of-argentinean-experience"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
-import { Loader2, Upload, X, ImageIcon } from "lucide-react"
+import { Loader2, Upload, X, ImageIcon } from 'lucide-react'
 import type { LeaderboardEntry } from "@/lib/redis"
 import Leaderboard from "./leaderboard"
 import { useTranslations } from "@/lib/i18n"
 import Image from "next/image"
-
-const contractAddress = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || "0xA3E6713d0E67002d3C707e64D8E41530385F6CFB"
 
 interface EvaluationResult {
   score: number
@@ -30,12 +28,18 @@ interface ImageAnalysisResult {
   metadata?: Record<string, any>
 }
 
+interface ConsensusProgress {
+  step: number
+  totalSteps: number
+  message: string
+  progress: number
+  completed?: boolean
+}
+
 export default function ArgentineanExperienceScreen() {
   const [description, setDescription] = useState("")
   const [tagsInput, setTagsInput] = useState("")
-  const [evaluating, setEvaluating] = useState(false)
   const [result, setResult] = useState<EvaluationResult | null>(null)
-  const [error, setError] = useState<string | null>(null)
   const [lastDescription, setLastDescription] = useState("")
   const [lastTags, setLastTags] = useState<string[]>([])
 
@@ -52,7 +56,7 @@ export default function ArgentineanExperienceScreen() {
   const [eligibleTracks, setEligibleTracks] = useState<string[]>([])
   const [checkingEligibility, setCheckingEligibility] = useState(false)
 
-  const proofOfExperience = new ProofOfArgentineanExperience(contractAddress)
+  const { evaluate, loading: evaluating, error, consensusProgress } = useProofOfArgentineanExperience()
 
   const t = useTranslations()
 
@@ -118,8 +122,6 @@ export default function ArgentineanExperienceScreen() {
     e.preventDefault()
     if (!description) return
 
-    setEvaluating(true)
-    setError(null)
     setResult(null)
     setIsEligibleForLeaderboard(false)
     setEligibleTracks([])
@@ -134,7 +136,7 @@ export default function ArgentineanExperienceScreen() {
 
       console.log("[v0] Starting evaluation with tags:", tags)
 
-      const evaluationResult = await proofOfExperience.evaluate(description, tags)
+      const evaluationResult = await evaluate(description, tags)
 
       console.log("[v0] Evaluation result:", evaluationResult)
 
@@ -150,9 +152,6 @@ export default function ArgentineanExperienceScreen() {
       }
     } catch (err: any) {
       console.error("[v0] Error evaluating experience:", err)
-      setError(err.message || "Error al evaluar la experiencia. Por favor, intenta nuevamente.")
-    } finally {
-      setEvaluating(false)
     }
   }
 
@@ -187,7 +186,6 @@ export default function ArgentineanExperienceScreen() {
 
       console.log("[v0] Auto-saving entry to Redis:", entry)
 
-      // Save only to eligible tracks
       for (const tag of eligibleTracksToSave) {
         console.log("[v0] Saving to track:", tag)
 
@@ -432,6 +430,89 @@ export default function ArgentineanExperienceScreen() {
                 </form>
               </CardContent>
             </Card>
+
+            {/* Consensus Process Visualization */}
+            {consensusProgress && (
+              <Card className="border-2 border-info">
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin text-info" />
+                    Proceso de Consenso
+                  </CardTitle>
+                  <CardDescription>
+                    El sistema está ejecutando múltiples evaluaciones hasta alcanzar consenso
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="mb-4">
+                    <div className="mb-2 flex items-center justify-between">
+                      <span className="text-sm font-medium text-foreground">{consensusProgress.message}</span>
+                      <span className="text-sm font-medium text-info">{consensusProgress.progress}%</span>
+                    </div>
+                    <div className="h-3 w-full rounded-full bg-muted">
+                      <div
+                        className="h-3 rounded-full bg-info transition-all duration-500 ease-out"
+                        style={{ width: `${consensusProgress.progress}%` }}
+                      />
+                    </div>
+                    <div className="mt-2 text-xs text-muted-foreground">
+                      Paso {consensusProgress.step} de {consensusProgress.totalSteps}
+                    </div>
+                  </div>
+
+                  {/* Consensus Steps Visualization */}
+                  <div className="mt-4 space-y-2">
+                    {Array.from({ length: consensusProgress.totalSteps }).map((_, index) => {
+                      const stepNumber = index + 1
+                      const isCompleted = stepNumber < consensusProgress.step
+                      const isCurrent = stepNumber === consensusProgress.step
+
+                      return (
+                        <div
+                          key={stepNumber}
+                          className={`flex items-center rounded p-2 ${
+                            isCompleted
+                              ? "border border-success bg-success/10"
+                              : isCurrent
+                                ? "border-2 border-info bg-info/10"
+                                : "border border-border bg-muted/50"
+                          }`}
+                        >
+                          <div
+                            className={`mr-3 flex h-6 w-6 items-center justify-center rounded-full ${
+                              isCompleted
+                                ? "bg-success text-white"
+                                : isCurrent
+                                  ? "animate-pulse bg-info text-white"
+                                  : "bg-muted text-muted-foreground"
+                            }`}
+                          >
+                            {isCompleted ? "✓" : stepNumber}
+                          </div>
+                          <span
+                            className={`text-sm ${
+                              isCompleted
+                                ? "font-medium text-success"
+                                : isCurrent
+                                  ? "font-medium text-info"
+                                  : "text-muted-foreground"
+                            }`}
+                          >
+                            {stepNumber === 1 && "Iniciando evaluación..."}
+                            {stepNumber === 2 && "Ejecutando primera evaluación con LLM..."}
+                            {stepNumber === 3 && "Ejecutando segunda evaluación para consenso..."}
+                            {stepNumber === 4 && "Comparando resultados..."}
+                            {stepNumber === 5 && "Ejecutando tercera evaluación (si es necesario)..."}
+                            {stepNumber === 6 && "Validando consenso..."}
+                            {stepNumber === 7 && "Consenso alcanzado ✓"}
+                          </span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Result Display */}
             {result && (
