@@ -544,14 +544,18 @@ export default function ArgentineanExperienceScreen() {
                     </div>
                   </div>
 
-                  <Button type="submit" disabled={!description || evaluating || savingToLeaderboard} className="w-full">
+                  <Button 
+                    type="submit" 
+                    disabled={!description || evaluating || savingToLeaderboard} 
+                    className="w-full bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 hover:from-blue-700 hover:via-purple-700 hover:to-pink-700 text-white font-bold text-lg py-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+                  >
                     {evaluating || savingToLeaderboard ? (
                       <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        {evaluating ? "Evaluating..." : "Saving..."}
+                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                        {evaluating ? "Evaluating with AI Consensus..." : "Saving..."}
                       </>
                     ) : (
-                      "Evaluate Experience"
+                      "Evaluate Experience with AI Consensus"
                     )}
                   </Button>
 
