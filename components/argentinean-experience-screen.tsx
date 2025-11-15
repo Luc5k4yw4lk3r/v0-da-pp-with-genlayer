@@ -652,49 +652,6 @@ export default function ArgentineanExperienceScreen() {
                           </div>
                         </div>
 
-                        <div className="space-y-2">
-                          {["PENDING", "PROPOSING", "COMMITTING", "REVEALING", "ACCEPTED", "FINALIZED"].map((status) => {
-                            const isCurrent = currentProgress?.status === status
-                            const statusOrder = ["PENDING", "PROPOSING", "COMMITTING", "REVEALING", "ACCEPTED", "FINALIZED"]
-                            const currentIndex = statusOrder.indexOf(currentProgress?.status || "")
-                            const statusIndex = statusOrder.indexOf(status)
-                            const isCompleted = statusIndex < currentIndex || (currentProgress?.completed && currentIndex === statusIndex)
-
-                            return (
-                              <div
-                                key={status}
-                                className={`flex items-center rounded-lg p-3 transition-all duration-500 ${isCompleted
-                                  ? "border border-success bg-success/10"
-                                  : isCurrent
-                                    ? "border-2 border-info bg-info/10 shadow-md"
-                                    : "border border-border bg-muted/30"
-                                  }`}
-                              >
-                                <div
-                                  className={`mr-3 flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold transition-all duration-500 ${isCompleted
-                                    ? "bg-success text-white"
-                                    : isCurrent
-                                      ? "animate-pulse bg-info text-white shadow-lg"
-                                      : "bg-muted text-muted-foreground"
-                                    }`}
-                                >
-                                  {isCompleted ? "✓" : "•"}
-                                </div>
-                                <span
-                                  className={`text-sm transition-all duration-500 ${isCompleted
-                                    ? "font-medium text-success"
-                                    : isCurrent
-                                      ? "font-semibold text-info"
-                                      : "text-muted-foreground"
-                                    }`}
-                                >
-                                  {status}
-                                </span>
-                              </div>
-                            )
-                          })}
-                        </div>
-
                         {currentProgress?.consensusData?.validators && currentProgress.consensusData.validators.length > 0 && (
                           <div className="space-y-3 border-t border-border pt-4">
                             <p className="text-sm font-semibold text-foreground">Consensus History</p>
