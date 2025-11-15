@@ -55,6 +55,7 @@ interface ConsensusData {
   votesReceived?: number
   totalValidators?: number
   fullTxData?: any
+  eqOutputs?: any
 }
 
 export default function ArgentineanExperienceScreen() {
@@ -629,16 +630,72 @@ export default function ArgentineanExperienceScreen() {
                               </div>
                             )}
 
-                            {result && (
+                            {(result || currentProgress?.consensusData?.eqOutputs) && (
                               <div className="space-y-2 border-t border-border pt-4">
                                 <p className="text-sm font-semibold text-foreground">Equivalence Principles Output:</p>
                                 <div className="space-y-2">
-                                  <div className="rounded-lg border border-border bg-muted/30 p-3">
-                                    <p className="text-xs font-medium text-muted-foreground mb-1">Equivalence Principle #0:</p>
-                                    <pre className="font-mono text-xs text-foreground overflow-auto">
-                                      {JSON.stringify({ message: result.message }, null, 2)}
-                                    </pre>
-                                  </div>
+                                  {currentProgress?.consensusData?.eqOutputs ? (
+                                    // Show all equivalence principles from eq_outputs
+                                    (() => {
+                                      const eqOutputs = currentProgress.consensusData.eqOutputs
+                                      const principles: Array<{ index: string, value: any }> = []
+
+                                      // Extract principles from eq_outputs structure
+                                      if (typeof eqOutputs === 'object' && !Array.isArray(eqOutputs)) {
+                                        if (eqOutputs.leader && typeof eqOutputs.leader === 'object') {
+                                          // Structure: { "leader": { "0": "JSON string", "1": "JSON string", ... } }
+                                          Object.entries(eqOutputs.leader).forEach(([key, value]) => {
+                                            let parsedValue = value
+                                            if (typeof value === 'string') {
+                                              try {
+                                                parsedValue = JSON.parse(value)
+                                              } catch (e) {
+                                                // Keep as string if not valid JSON
+                                              }
+                                            }
+                                            principles.push({ index: key, value: parsedValue })
+                                          })
+                                        } else {
+                                          // Direct structure: { "0": "JSON string", "1": "JSON string", ... }
+                                          Object.entries(eqOutputs).forEach(([key, value]) => {
+                                            let parsedValue = value
+                                            if (typeof value === 'string') {
+                                              try {
+                                                parsedValue = JSON.parse(value)
+                                              } catch (e) {
+                                                // Keep as string if not valid JSON
+                                              }
+                                            }
+                                            principles.push({ index: key, value: parsedValue })
+                                          })
+                                        }
+                                      }
+
+                                      // If no principles found in eq_outputs, show result as principle #0
+                                      if (principles.length === 0 && result) {
+                                        principles.push({ index: "0", value: { message: result.message, score: result.score } })
+                                      }
+
+                                      return principles.map((principle, idx) => (
+                                        <div key={idx} className="rounded-lg border border-border bg-muted/30 p-3">
+                                          <p className="text-xs font-medium text-muted-foreground mb-1">
+                                            Equivalence Principle #{principle.index}:
+                                          </p>
+                                          <pre className="font-mono text-xs text-foreground overflow-auto">
+                                            {JSON.stringify(principle.value, null, 2)}
+                                          </pre>
+                                        </div>
+                                      ))
+                                    })()
+                                  ) : result ? (
+                                    // Fallback: show result as principle #0
+                                    <div className="rounded-lg border border-border bg-muted/30 p-3">
+                                      <p className="text-xs font-medium text-muted-foreground mb-1">Equivalence Principle #0:</p>
+                                      <pre className="font-mono text-xs text-foreground overflow-auto">
+                                        {JSON.stringify({ message: result.message, score: result.score }, null, 2)}
+                                      </pre>
+                                    </div>
+                                  ) : null}
                                 </div>
                               </div>
                             )}

@@ -29,6 +29,7 @@ interface ConsensusData {
   votesReceived?: number
   totalValidators?: number
   fullTxData?: any
+  eqOutputs?: any
 }
 
 class ProofOfArgentineanExperience {
@@ -251,10 +252,25 @@ class ProofOfArgentineanExperience {
         }
       }
 
+      // Extract eq_outputs for Equivalence Principles Output display
+      let eqOutputs = null
+      if (txData.consensus_data?.leader_receipt) {
+        const leaderReceipt = Array.isArray(txData.consensus_data.leader_receipt)
+          ? txData.consensus_data.leader_receipt.find((r: any) => r.mode === "leader") || txData.consensus_data.leader_receipt[0]
+          : txData.consensus_data.leader_receipt
+        eqOutputs = leaderReceipt?.eq_outputs
+      } else if (txData.leader_receipt) {
+        const leaderReceipt = Array.isArray(txData.leader_receipt)
+          ? txData.leader_receipt.find((r: any) => r.mode === "leader") || txData.leader_receipt[0]
+          : txData.leader_receipt
+        eqOutputs = leaderReceipt?.eq_outputs
+      }
+
       const consensusData: ConsensusData = {
         finalResult: finalResult,
         validators: [],
         fullTxData: txData,
+        eqOutputs: eqOutputs,
       }
 
       // Extract leader information - leader_receipt can be an array
