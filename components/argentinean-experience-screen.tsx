@@ -815,65 +815,6 @@ export default function ArgentineanExperienceScreen() {
                 </CardContent>
               </Card>
             )}
-
-            {/* Examples Section */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Examples</CardTitle>
-                <CardDescription>Click on an example to load it into the form</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <Button
-                    onClick={() =>
-                      loadExample("Having mate with friends at the waterfront after the game.", ["Sports", "food"])
-                    }
-                    variant="outline"
-                    className="w-full justify-start text-left"
-                  >
-                    <span className="font-medium">Example 1:</span>
-                    <span className="ml-2 text-muted-foreground">
-                      Having mate with friends at the waterfront after the game.
-                    </span>
-                  </Button>
-                  <Button
-                    onClick={() =>
-                      loadExample(
-                        "Young person with Boca Juniors jersey at La Bombonera during a soccer match.",
-                        ["Sports", "Touristic locations"],
-                      )
-                    }
-                    variant="outline"
-                    className="w-full justify-start text-left"
-                  >
-                    <span className="font-medium">Example 2:</span>
-                    <span className="ml-2 text-muted-foreground">
-                      Young person with Boca Juniors jersey at La Bombonera.
-                    </span>
-                  </Button>
-                  <Button
-                    onClick={() =>
-                      loadExample("Eating asado with family on a summer Sunday.", ["food", "traditions"])
-                    }
-                    variant="outline"
-                    className="w-full justify-start text-left"
-                  >
-                    <span className="font-medium">Example 3:</span>
-                    <span className="ml-2 text-muted-foreground">
-                      Eating asado with family on a summer Sunday.
-                    </span>
-                  </Button>
-                  <Button
-                    onClick={() => loadExample("Having coffee at a coworking space in Berlin.", [])}
-                    variant="outline"
-                    className="w-full justify-start text-left"
-                  >
-                    <span className="font-medium">Example 4:</span>
-                    <span className="ml-2 text-muted-foreground">Having coffee at a coworking space in Berlin.</span>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
           </div>
 
           <div>
