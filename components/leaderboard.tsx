@@ -1,19 +1,38 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Trophy, Medal, Award, User } from "lucide-react"
 import type { LeaderboardEntry } from "@/lib/redis"
 import { TRACKS } from "@/lib/redis"
 
-export default function Leaderboard() {
+export default function Leaderboard({ refreshTrigger }: { refreshTrigger?: number }) {
   const [leaderboards, setLeaderboards] = useState<Record<string, LeaderboardEntry[]>>({})
   const [loading, setLoading] = useState(true)
+  const intervalRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
     fetchLeaderboards()
+
+    // Polling cada 5 segundos para actualizaciones automáticas
+    intervalRef.current = setInterval(() => {
+      fetchLeaderboards()
+    }, 5000)
+
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current)
+      }
+    }
   }, [])
+
+  // Refrescar cuando cambie el trigger externo
+  useEffect(() => {
+    if (refreshTrigger !== undefined) {
+      fetchLeaderboards()
+    }
+  }, [refreshTrigger])
 
   const fetchLeaderboards = async () => {
     try {

@@ -52,6 +52,8 @@ export default function ArgentineanExperienceScreen() {
   const [copiedHash, setCopiedHash] = useState(false)
   const [showFullTransactionData, setShowFullTransactionData] = useState(false)
 
+  const [leaderboardRefreshTrigger, setLeaderboardRefreshTrigger] = useState(0)
+
   const proofOfExperience = new ProofOfArgentineanExperience(contractAddress)
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -176,6 +178,7 @@ export default function ArgentineanExperienceScreen() {
 
       // Get transaction details (including consensus)
       setLoadingTransactionDetails(true)
+      let transactionDetailsData: TransactionDetails | null = null
       try {
         // Generate a mock transaction hash for demo
         const mockTxHash = `0x${Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join('')}`
@@ -183,6 +186,7 @@ export default function ArgentineanExperienceScreen() {
         // Get mock transaction details (will always return mock data for read calls)
         const details = await proofOfExperience.getTransactionDetails(mockTxHash)
         if (details) {
+          transactionDetailsData = details
           setTransactionDetails(details)
           // Update the result with the details
           setResult({ ...evaluationResult, transactionHash: txHash, transactionDetails: details })
@@ -196,7 +200,14 @@ export default function ArgentineanExperienceScreen() {
 
       if (validTracks.length > 0) {
         console.log("[v0] Auto-saving to Redis...")
-        await autoSaveToLeaderboard(evaluationResult.score, validTracks)
+        await autoSaveToLeaderboard(
+          evaluationResult.score,
+          validTracks,
+          {
+            transactionHash: txHash,
+            transactionDetails: transactionDetailsData || undefined,
+          }
+        )
       } else {
         console.log("[v0] Not auto-saving: no valid tracks provided")
       }
@@ -222,7 +233,11 @@ export default function ArgentineanExperienceScreen() {
     }
   }
 
-  const autoSaveToLeaderboard = async (score: number, tracks: Track[]) => {
+  const autoSaveToLeaderboard = async (
+    score: number,
+    tracks: Track[],
+    consensusData?: { transactionHash?: string; transactionDetails?: TransactionDetails }
+  ) => {
     try {
       const eligibleTracksToSave: Track[] = []
 
@@ -249,11 +264,16 @@ export default function ArgentineanExperienceScreen() {
         email: email || undefined,
         timestamp: Date.now(),
         tags: eligibleTracksToSave,
+        consensusResponse: consensusData ? {
+          transactionHash: consensusData.transactionHash,
+          transactionDetails: consensusData.transactionDetails,
+        } : undefined,
       }
 
-      console.log("[v0] Auto-saving entry to Redis:", entry)
+      console.log("[v0] Auto-saving entry to Redis with consensus data:", entry)
 
       // Save only to eligible tracks
+      let savedToAnyTrack = false
       for (const track of eligibleTracksToSave) {
         console.log("[v0] Saving to track:", track)
 
@@ -271,7 +291,13 @@ export default function ArgentineanExperienceScreen() {
         } else {
           const result = await response.json()
           console.log("[v0] Successfully saved to track:", track, result)
+          savedToAnyTrack = true
         }
+      }
+
+      if (savedToAnyTrack) {
+        // Trigger leaderboard refresh
+        setLeaderboardRefreshTrigger((prev: number) => prev + 1)
       }
 
       console.log("[v0] Auto-save completed successfully")
@@ -818,7 +844,7 @@ export default function ArgentineanExperienceScreen() {
           </div>
 
           <div>
-            <Leaderboard />
+            <Leaderboard refreshTrigger={leaderboardRefreshTrigger} />
           </div>
         </div>
       </main>

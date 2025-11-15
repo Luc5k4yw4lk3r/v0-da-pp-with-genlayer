@@ -1,4 +1,5 @@
 import { Redis } from "@upstash/redis"
+import type { TransactionDetails } from "@/lib/contracts/proof-of-argentinean-experience"
 
 export interface LeaderboardEntry {
   score: number
@@ -9,6 +10,10 @@ export interface LeaderboardEntry {
   email?: string
   timestamp: number
   tags: string[]
+  consensusResponse?: {
+    transactionHash?: string
+    transactionDetails?: TransactionDetails
+  }
 }
 
 const TRACKS = [
