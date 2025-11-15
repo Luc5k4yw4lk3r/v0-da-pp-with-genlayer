@@ -454,34 +454,45 @@ class ProofOfArgentineanExperience {
       }
 
       // Extraer el resultado de la transacción
+      // Prioridad: consensusData.finalResult > receipt.result > receipt.data
       let result = null
 
-      if (receipt.result) {
-        result = receipt.result
-      } else if (receipt.data && receipt.data.result) {
-        result = receipt.data.result
-      } else if (receipt.data) {
-        result = receipt.data
-      }
-
-      console.log("[v0] Receipt result:", result)
-      console.log("[v0] Consensus data finalResult:", consensusData?.finalResult)
-
-      // Priorizar el resultado del consensusData si está disponible
+      // PRIORIDAD 1: Usar el resultado extraído de eq_outputs en consensusData
       if (consensusData?.finalResult) {
         const final = consensusData.finalResult
+        console.log("[v0] Using consensusData.finalResult:", final)
+
         if (typeof final === "number") {
           result = { score: final, message: "" }
-        } else if (typeof final === "object" && final !== null) {
-          result = {
-            score: Number(final.score || 0),
-            message: final.message || "",
+        } else if (typeof final === "object" && final !== null && !Array.isArray(final)) {
+          // Si ya tiene score y message, usarlo directamente
+          if (final.score !== undefined || final.message !== undefined) {
+            result = {
+              score: Number(final.score || 0),
+              message: final.message || "",
+            }
+          } else {
+            // Si es un objeto pero no tiene score/message, puede ser el resultado completo
+            result = final
           }
         }
       }
 
-      // Si aún no hay resultado, intentar del receipt
+      // PRIORIDAD 2: Intentar del receipt directamente (como en main branch)
       if (!result) {
+        if (receipt.result) {
+          result = receipt.result
+        } else if (receipt.data && receipt.data.result) {
+          result = receipt.data.result
+        } else if (receipt.data) {
+          result = receipt.data
+        }
+
+        console.log("[v0] Receipt result:", result)
+      }
+
+      // Convertir el resultado al formato esperado
+      if (result) {
         // Si el resultado es solo un número, convertirlo a objeto
         if (typeof result === "number") {
           result = {
@@ -489,20 +500,21 @@ class ProofOfArgentineanExperience {
             message: "",
           }
         }
-
         // Convertir el resultado de Map a objeto si es necesario
-        if (result instanceof Map) {
+        else if (result instanceof Map) {
           result = {
             score: Number(result.get("score") || 0),
             message: result.get("message") || "",
           }
         }
-
-        // Si es un objeto directo
-        if (result && typeof result === "object" && !Array.isArray(result)) {
-          result = {
-            score: Number(result.score || result.get?.("score") || 0),
-            message: result.message || result.get?.("message") || "",
+        // Si es un objeto directo, extraer score y message
+        else if (typeof result === "object" && !Array.isArray(result)) {
+          // Si ya tiene score y message, usarlo
+          if (result.score !== undefined || result.message !== undefined) {
+            result = {
+              score: Number(result.score || result.get?.("score") || 0),
+              message: result.message || result.get?.("message") || "",
+            }
           }
         }
       }
