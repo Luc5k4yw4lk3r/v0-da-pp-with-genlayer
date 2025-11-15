@@ -26,11 +26,19 @@ class ProofOfArgentineanExperience {
     
     this.account = account
 
+    const endpoint = studioUrl || process.env.NEXT_PUBLIC_STUDIO_URL
+    
     const config: any = {
       chain: studionet,
       account,
-      ...(studioUrl ? { endpoint: studioUrl } : {}),
+      ...(endpoint ? { endpoint } : {}),
     }
+
+    console.log("[v0] Creating client with config:", { 
+      chain: 'studionet', 
+      accountAddress: account.address,
+      endpoint: endpoint || 'default'
+    })
 
     this.client = createClient(config)
   }
@@ -148,6 +156,11 @@ class ProofOfArgentineanExperience {
     onConsensusProgress?: (progress: ConsensusProgress) => void
   ) {
     try {
+      console.log("[v0] Starting evaluateWithConsensusTracking...")
+      console.log("[v0] Contract address:", this.contractAddress)
+      console.log("[v0] Description:", description)
+      console.log("[v0] Tags:", tags)
+      
       // Notificar inicio
       if (onConsensusProgress) {
         onConsensusProgress({
@@ -157,21 +170,26 @@ class ProofOfArgentineanExperience {
         })
       }
 
-      // Enviar transacción write
+      console.log("[v0] Sending writeContract transaction...")
+      
       const txHash = await this.client.writeContract({
         address: this.contractAddress,
         functionName: "evaluate_with_consensus_tracking",
         args: tags ? [description, tags] : [description],
       })
 
-      // Monitorear el estado de la transacción
+      console.log("[v0] Transaction hash received:", txHash)
+
+      console.log("[v0] Starting to wait for transaction receipt...")
+      
       const receipt = await this.client.waitForTransactionReceipt({
         hash: txHash,
         status: "FINALIZED",
-        interval: 2000, // Verificar cada 2 segundos
-        retries: 60, // Máximo 2 minutos
+        interval: 2000,
+        retries: 60,
         onStatusChange: (status: string) => {
-          // Notificar cambios de estado
+          console.log("[v0] Transaction status changed to:", status)
+          
           if (onConsensusProgress) {
             onConsensusProgress({
               status: status,
@@ -181,6 +199,8 @@ class ProofOfArgentineanExperience {
           }
         },
       })
+
+      console.log("[v0] Transaction receipt received:", receipt)
 
       // Extraer el resultado de la transacción
       let result = null
@@ -192,13 +212,15 @@ class ProofOfArgentineanExperience {
       } else if (receipt.data) {
         result = receipt.data
       } else {
-        // Si no hay resultado en el receipt, leer del contrato
+        console.log("[v0] No result in receipt, reading from contract...")
         result = await this.client.readContract({
           address: this.contractAddress,
           functionName: "evaluate",
           args: tags ? [description, tags] : [description],
         })
       }
+
+      console.log("[v0] Final result:", result)
 
       // Convertir el resultado de Map a objeto si es necesario
       if (result instanceof Map) {
@@ -221,6 +243,8 @@ class ProofOfArgentineanExperience {
         message: result?.message || "",
       }
     } catch (error: any) {
+      console.error("[v0] Error in evaluateWithConsensusTracking:", error)
+      
       if (onConsensusProgress) {
         onConsensusProgress({
           status: "ERROR",
