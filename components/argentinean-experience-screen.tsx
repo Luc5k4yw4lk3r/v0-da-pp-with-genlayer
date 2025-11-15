@@ -29,13 +29,30 @@ interface ImageAnalysisResult {
 }
 
 interface ConsensusProgress {
-  step: number
-  totalSteps: number
+  step?: number
+  totalSteps?: number
   message: string
   progress: number
   completed?: boolean
   status?: string
   error?: boolean
+  consensusData?: ConsensusData
+  txHash?: string
+}
+
+interface ValidatorVote {
+  address: string
+  vote: any
+  llmProvider?: string
+}
+
+interface ConsensusData {
+  leader?: string
+  validators?: ValidatorVote[]
+  finalResult?: any
+  executionMode?: string
+  votesReceived?: number
+  totalValidators?: number
 }
 
 export default function ArgentineanExperienceScreen() {
@@ -490,6 +507,13 @@ export default function ArgentineanExperienceScreen() {
                           </div>
                         </div>
 
+                        {currentProgress?.txHash && (
+                          <div className="mb-4 rounded-lg bg-muted p-3">
+                            <p className="text-xs font-medium text-muted-foreground mb-1">Transaction Hash:</p>
+                            <p className="font-mono text-xs text-foreground break-all">{currentProgress.txHash}</p>
+                          </div>
+                        )}
+
                         <div className="mt-4 space-y-2">
                           {["PENDING", "PROPOSING", "COMMITTING", "REVEALING", "ACCEPTED", "FINALIZED"].map((status) => {
                             const isCurrent = currentProgress?.status === status
@@ -535,6 +559,67 @@ export default function ArgentineanExperienceScreen() {
                             )
                           })}
                         </div>
+
+                        {currentProgress?.consensusData && (
+                          <div className="mt-6 space-y-4 border-t border-border pt-4">
+                            <h4 className="font-semibold text-foreground">Detalles del Consenso</h4>
+                            
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="rounded-lg bg-accent p-3">
+                                <p className="text-xs text-muted-foreground">Modo de Ejecución</p>
+                                <p className="font-medium text-foreground">{currentProgress.consensusData.executionMode || "N/A"}</p>
+                              </div>
+                              <div className="rounded-lg bg-accent p-3">
+                                <p className="text-xs text-muted-foreground">Votos Recibidos</p>
+                                <p className="font-medium text-foreground">
+                                  {currentProgress.consensusData.votesReceived}/{currentProgress.consensusData.totalValidators}
+                                </p>
+                              </div>
+                            </div>
+
+                            {currentProgress.consensusData.leader && (
+                              <div className="rounded-lg border-2 border-info bg-info/5 p-3">
+                                <p className="text-xs font-semibold text-info mb-2">LEADER</p>
+                                <p className="font-mono text-xs text-foreground break-all">{currentProgress.consensusData.leader}</p>
+                              </div>
+                            )}
+
+                            {currentProgress.consensusData.validators && currentProgress.consensusData.validators.length > 0 && (
+                              <div className="space-y-2">
+                                <p className="text-sm font-semibold text-foreground">Validadores</p>
+                                {currentProgress.consensusData.validators.map((validator, index) => (
+                                  <div key={index} className="rounded-lg border border-border bg-muted/30 p-3 space-y-2">
+                                    <div className="flex items-center justify-between">
+                                      <p className="font-mono text-xs text-foreground break-all flex-1">
+                                        {validator.address}
+                                      </p>
+                                      {validator.llmProvider && (
+                                        <span className="ml-2 rounded-full bg-accent px-2 py-1 text-xs text-muted-foreground">
+                                          {validator.llmProvider}
+                                        </span>
+                                      )}
+                                    </div>
+                                    {validator.vote !== undefined && (
+                                      <div className="rounded bg-accent/50 p-2">
+                                        <p className="text-xs text-muted-foreground">Voto:</p>
+                                        <p className="font-mono text-xs text-foreground">{JSON.stringify(validator.vote, null, 2)}</p>
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+
+                            {currentProgress.consensusData.finalResult !== undefined && (
+                              <div className="rounded-lg border-2 border-success bg-success/5 p-3">
+                                <p className="text-xs font-semibold text-success mb-2">RESULTADO FINAL</p>
+                                <pre className="font-mono text-xs text-foreground overflow-auto">
+                                  {JSON.stringify(currentProgress.consensusData.finalResult, null, 2)}
+                                </pre>
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </>
                     )
                   })()}

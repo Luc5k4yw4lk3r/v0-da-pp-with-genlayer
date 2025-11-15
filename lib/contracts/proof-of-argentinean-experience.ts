@@ -9,6 +9,23 @@ interface ConsensusProgress {
   completed?: boolean
   status?: string
   error?: boolean
+  consensusData?: ConsensusData
+  txHash?: string
+}
+
+interface ValidatorVote {
+  address: string
+  vote: any
+  llmProvider?: string
+}
+
+interface ConsensusData {
+  leader?: string
+  validators?: ValidatorVote[]
+  finalResult?: any
+  executionMode?: string
+  votesReceived?: number
+  totalValidators?: number
 }
 
 class ProofOfArgentineanExperience {
@@ -150,6 +167,65 @@ class ProofOfArgentineanExperience {
     }
   }
 
+  async _fetchConsensusDetails(txHash: string): Promise<ConsensusData | null> {
+    try {
+      const endpoint = process.env.NEXT_PUBLIC_STUDIO_URL || "https://devconnect-25-studio.genlayer.com/api"
+      
+      console.log("[v0] Fetching consensus details for tx:", txHash)
+      console.log("[v0] Endpoint:", endpoint)
+      
+      const response = await fetch(`${endpoint}/transactions/${txHash}`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      })
+
+      if (!response.ok) {
+        console.error("[v0] Failed to fetch consensus details:", response.status)
+        return null
+      }
+
+      const txData = await response.json()
+      console.log("[v0] Transaction data received:", txData)
+
+      // Extraer información del consenso
+      const consensusData: ConsensusData = {
+        leader: txData.leader_receipt?.vote?.vote_address,
+        validators: [],
+        finalResult: txData.result,
+        executionMode: txData.consensus_data?.execution_mode,
+        votesReceived: txData.consensus_data?.votes?.length || 0,
+        totalValidators: txData.consensus_data?.validators_pool?.length || 0,
+      }
+
+      // Agregar información del leader si existe
+      if (txData.leader_receipt) {
+        consensusData.validators?.push({
+          address: txData.leader_receipt.vote?.vote_address || "Leader",
+          vote: txData.leader_receipt.vote?.vote,
+          llmProvider: txData.leader_receipt.vote?.llm_provider,
+        })
+      }
+
+      // Agregar votos de validadores
+      if (txData.consensus_data?.votes) {
+        for (const vote of txData.consensus_data.votes) {
+          consensusData.validators?.push({
+            address: vote.vote_address || "Validator",
+            vote: vote.vote,
+            llmProvider: vote.llm_provider,
+          })
+        }
+      }
+
+      return consensusData
+    } catch (error) {
+      console.error("[v0] Error fetching consensus details:", error)
+      return null
+    }
+  }
+
   async evaluateWithConsensusTracking(
     description: string,
     tags: string[] | null = null,
@@ -195,12 +271,28 @@ class ProofOfArgentineanExperience {
               status: status,
               message: this._getStatusMessage(status),
               progress: this._getProgressFromStatus(status),
+              txHash: txHash,
             })
           }
         },
       })
 
       console.log("[v0] Transaction receipt received:", receipt)
+
+      const consensusData = await this._fetchConsensusDetails(txHash)
+      console.log("[v0] Consensus data:", consensusData)
+
+      // Notificar finalización con datos del consenso
+      if (onConsensusProgress) {
+        onConsensusProgress({
+          status: "FINALIZED",
+          message: "Consenso finalizado ✓",
+          progress: 100,
+          completed: true,
+          txHash: txHash,
+          consensusData: consensusData || undefined,
+        })
+      }
 
       // Extraer el resultado de la transacción
       let result = null
