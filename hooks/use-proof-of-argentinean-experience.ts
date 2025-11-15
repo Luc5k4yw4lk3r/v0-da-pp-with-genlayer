@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from "react"
 import ProofOfArgentineanExperience from "@/lib/contracts/proof-of-argentinean-experience"
 
-const contractAddress = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || "0xA3E6713d0E67002d3C707e64D8E41530385F6CFB"
+const contractAddress = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || "0x1536C6e0e92030dc47375208C1172A1c6ebC10f2"
 const studioUrl = process.env.NEXT_PUBLIC_STUDIO_URL || null
 
 interface EvaluationResult {
@@ -67,11 +67,11 @@ export function useProofOfArgentineanExperience(account: any = null) {
     [client]
   )
 
-  return { 
-    evaluateWithTracking, 
-    loading, 
-    error, 
+  return {
+    evaluateWithTracking,
+    loading,
+    error,
     consensusProgress,
-    accountAddress: client?.account?.address 
+    accountAddress: client?.account?.address
   }
 }

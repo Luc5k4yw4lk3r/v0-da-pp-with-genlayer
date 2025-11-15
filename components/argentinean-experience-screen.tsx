@@ -82,6 +82,8 @@ export default function ArgentineanExperienceScreen() {
 
   const [copiedTxHash, setCopiedTxHash] = useState(false)
   const [fullTxData, setFullTxData] = useState<any>(null)
+  const [transactionInput, setTransactionInput] = useState<{ description: string, tags: string[] | null } | null>(null)
+  const [transactionOutput, setTransactionOutput] = useState<number | null>(null)
 
   const [refreshLeaderboard, setRefreshLeaderboard] = useState<(() => void) | null>(null)
 
@@ -164,14 +166,21 @@ export default function ArgentineanExperienceScreen() {
     try {
       const tags = tagsInput
         ? tagsInput
-            .split(",")
-            .map((t) => t.trim())
-            .filter((t) => t)
+          .split(",")
+          .map((t) => t.trim())
+          .filter((t) => t)
         : null
+
+      // Store input for display
+      setTransactionInput({ description, tags })
+      setTransactionOutput(null)
 
       console.log("[v0] Starting evaluation with consensus tracking, tags:", tags)
 
       const evaluationResult = await evaluateWithTracking(description, tags)
+
+      // Store output for display
+      setTransactionOutput(evaluationResult.score)
 
       console.log("[v0] Evaluation result:", evaluationResult)
 
@@ -491,10 +500,10 @@ export default function ArgentineanExperienceScreen() {
                       ) : (
                         <span className="mr-2 text-2xl">✓</span>
                       )}
-                      <span>Transaction</span>
+                      <span>Transaction Method Call</span>
                     </div>
                     <span className="text-sm font-normal text-muted-foreground">
-                      {new Date().toLocaleTimeString()}
+                      {new Date().toLocaleString()}
                     </span>
                   </CardTitle>
                 </CardHeader>
@@ -526,13 +535,12 @@ export default function ArgentineanExperienceScreen() {
                             <div className="flex gap-2 mb-4">
                               <div className="flex items-center gap-2">
                                 <span className="text-xs font-medium text-muted-foreground">Status:</span>
-                                <span className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ${
-                                  currentProgress.status === 'FINALIZED' 
-                                    ? 'bg-destructive/10 text-destructive border border-destructive' 
-                                    : currentProgress.status === 'ACCEPTED'
+                                <span className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ${currentProgress.status === 'FINALIZED'
+                                  ? 'bg-destructive/10 text-destructive border border-destructive'
+                                  : currentProgress.status === 'ACCEPTED'
                                     ? 'bg-success/10 text-success border border-success'
                                     : 'bg-info/10 text-info border border-info'
-                                }`}>
+                                  }`}>
                                   {currentProgress.status || 'PENDING'}
                                 </span>
                               </div>
@@ -541,6 +549,14 @@ export default function ArgentineanExperienceScreen() {
                                   <span className="text-xs font-medium text-muted-foreground">Execution:</span>
                                   <span className="inline-flex items-center rounded-md bg-success/10 text-success border border-success px-2 py-1 text-xs font-medium">
                                     SUCCESS
+                                  </span>
+                                </div>
+                              )}
+                              {!currentProgress.completed && currentProgress.status && (
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs font-medium text-muted-foreground">Execution:</span>
+                                  <span className="inline-flex items-center rounded-md bg-muted/10 text-muted-foreground border border-border px-2 py-1 text-xs font-medium">
+                                    PENDING
                                   </span>
                                 </div>
                               )}
@@ -579,6 +595,40 @@ export default function ArgentineanExperienceScreen() {
                                 </div>
                               </div>
                             )}
+
+                            {transactionInput && (
+                              <div className="space-y-2 border-t border-border pt-4">
+                                <p className="text-sm font-semibold text-foreground">Input:</p>
+                                <div className="rounded-lg border border-border bg-muted/30 p-3">
+                                  <pre className="font-mono text-xs text-foreground overflow-auto">
+                                    {JSON.stringify({ args: [transactionInput.description] }, null, 2)}
+                                  </pre>
+                                </div>
+                              </div>
+                            )}
+
+                            {transactionOutput !== null && (
+                              <div className="space-y-2 border-t border-border pt-4">
+                                <p className="text-sm font-semibold text-foreground">Output:</p>
+                                <div className="rounded-lg border border-border bg-muted/30 p-3">
+                                  <p className="font-mono text-sm text-foreground">{transactionOutput}</p>
+                                </div>
+                              </div>
+                            )}
+
+                            {result && (
+                              <div className="space-y-2 border-t border-border pt-4">
+                                <p className="text-sm font-semibold text-foreground">Equivalence Principles Output:</p>
+                                <div className="space-y-2">
+                                  <div className="rounded-lg border border-border bg-muted/30 p-3">
+                                    <p className="text-xs font-medium text-muted-foreground mb-1">Equivalence Principle #0:</p>
+                                    <pre className="font-mono text-xs text-foreground overflow-auto">
+                                      {JSON.stringify({ message: result.message }, null, 2)}
+                                    </pre>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
                           </div>
                         )}
 
@@ -595,9 +645,8 @@ export default function ArgentineanExperienceScreen() {
                           </div>
                           <div className="h-3 w-full rounded-full bg-muted">
                             <div
-                              className={`h-3 rounded-full transition-all duration-700 ease-out ${
-                                currentProgress?.error ? "bg-destructive" : currentProgress?.completed ? "bg-success" : "bg-info"
-                              }`}
+                              className={`h-3 rounded-full transition-all duration-700 ease-out ${currentProgress?.error ? "bg-destructive" : currentProgress?.completed ? "bg-success" : "bg-info"
+                                }`}
                               style={{ width: `${currentProgress?.progress}%` }}
                             />
                           </div>
@@ -614,33 +663,30 @@ export default function ArgentineanExperienceScreen() {
                             return (
                               <div
                                 key={status}
-                                className={`flex items-center rounded-lg p-3 transition-all duration-500 ${
-                                  isCompleted
-                                    ? "border border-success bg-success/10"
-                                    : isCurrent
-                                      ? "border-2 border-info bg-info/10 shadow-md"
-                                      : "border border-border bg-muted/30"
-                                }`}
+                                className={`flex items-center rounded-lg p-3 transition-all duration-500 ${isCompleted
+                                  ? "border border-success bg-success/10"
+                                  : isCurrent
+                                    ? "border-2 border-info bg-info/10 shadow-md"
+                                    : "border border-border bg-muted/30"
+                                  }`}
                               >
                                 <div
-                                  className={`mr-3 flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold transition-all duration-500 ${
-                                    isCompleted
-                                      ? "bg-success text-white"
-                                      : isCurrent
-                                        ? "animate-pulse bg-info text-white shadow-lg"
-                                        : "bg-muted text-muted-foreground"
-                                  }`}
+                                  className={`mr-3 flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold transition-all duration-500 ${isCompleted
+                                    ? "bg-success text-white"
+                                    : isCurrent
+                                      ? "animate-pulse bg-info text-white shadow-lg"
+                                      : "bg-muted text-muted-foreground"
+                                    }`}
                                 >
                                   {isCompleted ? "✓" : "•"}
                                 </div>
                                 <span
-                                  className={`text-sm transition-all duration-500 ${
-                                    isCompleted
-                                      ? "font-medium text-success"
-                                      : isCurrent
-                                        ? "font-semibold text-info"
-                                        : "text-muted-foreground"
-                                  }`}
+                                  className={`text-sm transition-all duration-500 ${isCompleted
+                                    ? "font-medium text-success"
+                                    : isCurrent
+                                      ? "font-semibold text-info"
+                                      : "text-muted-foreground"
+                                    }`}
                                 >
                                   {status}
                                 </span>
@@ -652,43 +698,98 @@ export default function ArgentineanExperienceScreen() {
                         {currentProgress?.consensusData?.validators && currentProgress.consensusData.validators.length > 0 && (
                           <div className="space-y-3 border-t border-border pt-4">
                             <p className="text-sm font-semibold text-foreground">Consensus History</p>
-                            
-                            {currentProgress.consensusData.executionMode && (
-                              <div className="flex gap-2 flex-wrap mb-2">
-                                <span className="inline-flex items-center rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground border border-border">
-                                  {currentProgress.consensusData.executionMode}
-                                </span>
-                                <span className="inline-flex items-center rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground border border-border">
-                                  COMMITTING
-                                </span>
-                                <span className="inline-flex items-center rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground border border-border">
-                                  REVEALING
-                                </span>
-                                <span className="inline-flex items-center rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground border border-border">
-                                  UNDETERMINED
-                                </span>
+
+                            <div className="rounded-lg border border-border bg-muted/30 p-3">
+                              <p className="text-xs text-muted-foreground mb-2">
+                                {currentProgress.status === "UNDETERMINED" || !currentProgress.completed
+                                  ? "Undetermined"
+                                  : currentProgress.status || "Processing"}
+                              </p>
+                              <div className="flex gap-2 flex-wrap text-xs">
+                                {["PENDING", "PROPOSING", "COMMITTING", "REVEALING", "UNDETERMINED"].map((status, idx) => (
+                                  <span key={status} className={`${idx < ["PENDING", "PROPOSING", "COMMITTING", "REVEALING", "UNDETERMINED"].length - 1
+                                    ? "after:content-['→'] after:mx-1"
+                                    : ""
+                                    }`}>
+                                    {status}
+                                  </span>
+                                ))}
                               </div>
-                            )}
+                            </div>
 
                             <div className="space-y-2">
-                              {currentProgress.consensusData.validators.map((validator, index) => (
-                                <div key={index} className="flex items-center justify-between rounded-lg border border-border bg-muted/30 p-3">
-                                  <div className="flex items-center gap-2 flex-1 min-w-0">
-                                    <svg className="h-4 w-4 flex-shrink-0 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                                    </svg>
-                                    <p className="font-mono text-xs text-foreground truncate" title={validator.address}>
-                                      {validator.address}
-                                    </p>
+                              {currentProgress.consensusData.validators.map((validator, index) => {
+                                // Get leader's result (first validator is usually the leader)
+                                const leaderValidator = currentProgress.consensusData?.validators?.[0]
+                                const leaderVote = leaderValidator?.vote || currentProgress.consensusData?.finalResult
+                                const validatorVote = validator.vote
+
+                                // Normalize votes for comparison
+                                const normalizeVote = (vote: any) => {
+                                  if (!vote) return null
+                                  // If it's an object with score and message, extract those
+                                  if (typeof vote === 'object' && !Array.isArray(vote)) {
+                                    const score = vote.score ?? vote.get?.('score')
+                                    const message = vote.message ?? vote.get?.('message')
+                                    if (score !== undefined || message !== undefined) {
+                                      return { score, message }
+                                    }
+                                  }
+                                  // If it's just a number (score), return it
+                                  if (typeof vote === 'number') {
+                                    return vote
+                                  }
+                                  return vote
+                                }
+
+                                const normalizedLeaderVote = normalizeVote(leaderVote)
+                                const normalizedValidatorVote = normalizeVote(validatorVote)
+
+                                // Compare votes - check if validator's vote matches leader's
+                                let agrees = false
+                                if (normalizedLeaderVote && normalizedValidatorVote) {
+                                  // If both are objects with score, compare scores
+                                  if (typeof normalizedLeaderVote === 'object' && typeof normalizedValidatorVote === 'object') {
+                                    const leaderScore = normalizedLeaderVote.score ?? normalizedLeaderVote
+                                    const validatorScore = normalizedValidatorVote.score ?? normalizedValidatorVote
+                                    agrees = leaderScore === validatorScore
+                                  } else {
+                                    // Direct comparison
+                                    agrees = JSON.stringify(normalizedLeaderVote) === JSON.stringify(normalizedValidatorVote)
+                                  }
+                                }
+
+                                // If this is the leader itself, always show as agree
+                                if (validator.address === leaderValidator?.address) {
+                                  agrees = true
+                                }
+
+                                return (
+                                  <div key={index} className="flex items-center justify-between rounded-lg border border-border bg-muted/30 p-3">
+                                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                                      <svg className="h-4 w-4 flex-shrink-0 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                      </svg>
+                                      <p className="font-mono text-xs text-foreground truncate" title={validator.address}>
+                                        {validator.address}
+                                      </p>
+                                    </div>
+                                    <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                                      {agrees ? (
+                                        <button className="flex items-center gap-1 rounded-md bg-success/10 px-2 py-1 text-xs font-medium text-success border border-success">
+                                          <Check className="h-3 w-3" />
+                                          <span>Agree</span>
+                                        </button>
+                                      ) : (
+                                        <button className="flex items-center gap-1 rounded-md bg-destructive/10 px-2 py-1 text-xs font-medium text-destructive border border-destructive">
+                                          <X className="h-3 w-3" />
+                                          <span>Disagree</span>
+                                        </button>
+                                      )}
+                                    </div>
                                   </div>
-                                  <div className="flex items-center gap-2 flex-shrink-0 ml-2">
-                                    <button className="flex items-center gap-1 rounded-md bg-destructive/10 px-2 py-1 text-xs font-medium text-destructive border border-destructive hover:bg-destructive/20 transition-colors">
-                                      <X className="h-3 w-3" />
-                                      <span>Disagree</span>
-                                    </button>
-                                  </div>
-                                </div>
-                              ))}
+                                )
+                              })}
                             </div>
                           </div>
                         )}

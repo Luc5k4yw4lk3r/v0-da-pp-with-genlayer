@@ -41,19 +41,19 @@ class ProofOfArgentineanExperience {
       account = createAccount()
       console.log("[v0] Generated account address:", account.address)
     }
-    
+
     this.account = account
 
     const endpoint = studioUrl || process.env.NEXT_PUBLIC_STUDIO_URL
-    
+
     const config: any = {
       chain: studionet,
       account,
       ...(endpoint ? { endpoint } : {}),
     }
 
-    console.log("[v0] Creating client with config:", { 
-      chain: 'studionet', 
+    console.log("[v0] Creating client with config:", {
+      chain: 'studionet',
       accountAddress: account.address,
       endpoint: endpoint || 'default'
     })
@@ -96,9 +96,9 @@ class ProofOfArgentineanExperience {
   async _fetchConsensusDetails(txHash: string): Promise<ConsensusData | null> {
     try {
       const endpoint = process.env.NEXT_PUBLIC_STUDIO_URL || "https://devconnect-25-studio.genlayer.com/api"
-      
+
       console.log("[v0] Fetching consensus details for tx:", txHash)
-      
+
       const response = await fetch(endpoint, {
         method: "POST",
         headers: {
@@ -118,7 +118,7 @@ class ProofOfArgentineanExperience {
       }
 
       const rpcResponse = await response.json()
-      
+
       if (rpcResponse.error) {
         console.error("[v0] RPC error:", rpcResponse.error)
         return null
@@ -132,55 +132,99 @@ class ProofOfArgentineanExperience {
         return null
       }
 
+      // Extract final result - could be in result, data.result, or receipt.result
+      let finalResult = txData.result || txData.data?.result || txData.receipt?.result
+
+      // If result is a Map-like structure, convert it
+      if (finalResult && typeof finalResult === 'object' && !Array.isArray(finalResult)) {
+        // Try to extract score and message
+        if (finalResult.score !== undefined || finalResult.get) {
+          finalResult = {
+            score: finalResult.score || finalResult.get?.('score'),
+            message: finalResult.message || finalResult.get?.('message')
+          }
+        }
+      }
+
       const consensusData: ConsensusData = {
-        finalResult: txData.result,
+        finalResult: finalResult,
         validators: [],
         fullTxData: txData,
       }
 
+      // Extract leader information
+      let leaderVote = null
+      let leaderAddress = null
+
+      if (txData.leader_receipt) {
+        leaderVote = txData.leader_receipt.vote
+        leaderAddress = leaderVote?.vote_address || txData.leader_receipt.leader_address || txData.activator
+        consensusData.leader = leaderAddress
+      } else if (txData.activator) {
+        leaderAddress = txData.activator
+        consensusData.leader = leaderAddress
+      }
+
+      // Get leader's result for comparison
+      const leaderResult = leaderVote?.vote || finalResult
+
       // Obtener datos del consensus_data si existe
       if (txData.consensus_data) {
         consensusData.executionMode = txData.consensus_data.mode || txData.consensus_data.execution_mode
-        
+
         // Los votes pueden venir como objeto o array
         if (txData.consensus_data.votes) {
-          const votesData = Array.isArray(txData.consensus_data.votes) 
-            ? txData.consensus_data.votes 
+          const votesData = Array.isArray(txData.consensus_data.votes)
+            ? txData.consensus_data.votes
             : Object.values(txData.consensus_data.votes || {})
-          
+
           consensusData.votesReceived = votesData.length
           consensusData.totalValidators = votesData.length
         }
       }
 
-      // Agregar información del leader si existe
-      if (txData.leader_receipt) {
-        const leaderVote = txData.leader_receipt.vote
-        consensusData.leader = leaderVote?.vote_address || txData.leader_receipt.leader_address || "Leader"
-        
-        if (leaderVote) {
-          consensusData.validators?.push({
-            address: leaderVote.vote_address || "Leader",
-            vote: leaderVote.vote,
-            llmProvider: leaderVote.llm_provider,
-          })
-        }
+      // Agregar información del leader como primer validador
+      if (leaderAddress) {
+        consensusData.validators?.push({
+          address: leaderAddress,
+          vote: leaderResult,
+          llmProvider: leaderVote?.llm_provider || "openai",
+        })
       }
 
       // Agregar votos de validadores del consensus_data
       if (txData.consensus_data?.votes) {
-        const votesData = Array.isArray(txData.consensus_data.votes) 
-          ? txData.consensus_data.votes 
+        const votesData = Array.isArray(txData.consensus_data.votes)
+          ? txData.consensus_data.votes
           : Object.values(txData.consensus_data.votes || {})
-        
+
         for (const vote of votesData) {
           // Evitar duplicar el leader
-          if (vote.vote_address !== consensusData.leader) {
+          const voteAddress = vote.vote_address || vote.address
+          if (voteAddress && voteAddress !== leaderAddress) {
             consensusData.validators?.push({
-              address: vote.vote_address || "Validator",
-              vote: vote.vote,
+              address: voteAddress,
+              vote: vote.vote || vote.result,
               llmProvider: vote.llm_provider,
             })
+          }
+        }
+      }
+
+      // Also check for validators in other possible locations
+      if (txData.validators && Array.isArray(txData.validators)) {
+        for (const validator of txData.validators) {
+          const validatorAddress = validator.address || validator.vote_address
+          if (validatorAddress && validatorAddress !== leaderAddress) {
+            // Check if already added
+            const alreadyAdded = consensusData.validators?.some(v => v.address === validatorAddress)
+            if (!alreadyAdded) {
+              consensusData.validators?.push({
+                address: validatorAddress,
+                vote: validator.vote || validator.result,
+                llmProvider: validator.llm_provider,
+              })
+            }
           }
         }
       }
@@ -203,7 +247,7 @@ class ProofOfArgentineanExperience {
       console.log("[v0] Contract address:", this.contractAddress)
       console.log("[v0] Description:", description)
       console.log("[v0] Tags:", tags)
-      
+
       // Notificar inicio
       if (onConsensusProgress) {
         onConsensusProgress({
@@ -214,7 +258,7 @@ class ProofOfArgentineanExperience {
       }
 
       console.log("[v0] Sending writeContract transaction...")
-      
+
       const txHash = await this.client.writeContract({
         address: this.contractAddress,
         functionName: "evaluate_with_consensus_tracking",
@@ -224,7 +268,7 @@ class ProofOfArgentineanExperience {
       console.log("[v0] Transaction hash received:", txHash)
 
       console.log("[v0] Starting to wait for transaction receipt...")
-      
+
       const receipt = await this.client.waitForTransactionReceipt({
         hash: txHash,
         status: "FINALIZED",
@@ -232,7 +276,7 @@ class ProofOfArgentineanExperience {
         retries: 60,
         onStatusChange: (status: string) => {
           console.log("[v0] Transaction status changed to:", status)
-          
+
           if (onConsensusProgress) {
             onConsensusProgress({
               status: status,
@@ -296,7 +340,7 @@ class ProofOfArgentineanExperience {
       }
     } catch (error: any) {
       console.error("[v0] Error in evaluateWithConsensusTracking:", error)
-      
+
       if (onConsensusProgress) {
         onConsensusProgress({
           status: "ERROR",
