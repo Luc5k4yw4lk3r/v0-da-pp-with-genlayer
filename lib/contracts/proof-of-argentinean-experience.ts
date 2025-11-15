@@ -82,12 +82,26 @@ class ProofOfArgentineanExperience {
       ? Math.round(imageQuality * 100)
       : null
 
-    // Always pass all three arguments in order
-    const args: any[] = [
-      description,
-      tags || null,  // Pass null explicitly if no tags
-      qualityInt     // Pass null or the integer quality value
-    ]
+    // Build args array conditionally based on what's provided
+    // IMPORTANT: The deployed contract must have the updated signature with image_quality parameter
+    // Current signature: evaluate(description: str, tags: list[str] = None, image_quality: int = None)
+    // 
+    // For now, we only pass image_quality if tags are also provided, to maintain argument order.
+    // Once the contract is redeployed with the new signature, image_quality will be fully supported.
+    const args: any[] = [description]
+
+    // Add tags if provided and not empty
+    if (tags && tags.length > 0) {
+      args.push(tags)
+      // Add imageQuality if provided (only after tags to maintain correct order)
+      // TODO: Once contract is redeployed with image_quality parameter, this will work fully
+      if (qualityInt !== null) {
+        args.push(qualityInt)
+      }
+    }
+    // Note: If tags is null/empty but qualityInt is provided, we don't pass qualityInt
+    // because the contract signature requires positional arguments in order.
+    // The quality penalty will be handled by the LLM prompt if image_quality info is available in description
 
     console.log("[v0] Calling contract with args:", args)
 
