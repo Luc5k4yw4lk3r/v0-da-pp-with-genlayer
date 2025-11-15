@@ -67,50 +67,52 @@ class ProofOfArgentineanExperience {
 
   async evaluate(description: string, tags: string[] | null = null, imageQuality?: number): Promise<EvaluationResult> {
     const args: any[] = [description]
-    // Always include tags (even if null or empty) before imageQuality to maintain argument order
+    
+    // Only add tags if they exist and are not empty
     if (tags && tags.length > 0) {
       args.push(tags)
-    } else if (imageQuality !== undefined && imageQuality !== null) {
-      // If imageQuality is provided but tags is null/empty, pass null for tags to maintain order
-      args.push(null)
     }
+    
+    // Only add imageQuality if it's provided
     if (imageQuality !== undefined && imageQuality !== null) {
       // Convert float (0.0-1.0) to int (0-100) for GenVM compatibility
       const qualityInt = Math.round(imageQuality * 100)
       args.push(qualityInt)
     }
 
-    const result = await this.client.readContract({
-      address: this.contractAddress,
-      functionName: "evaluate",
-      args,
-    })
+    console.log("[v0] Calling contract with args:", args)
 
-    let score = 0
-    let message = ""
+    try {
+      const result = await this.client.readContract({
+        address: this.contractAddress,
+        functionName: "evaluate",
+        args,
+      })
 
-    // Convert the result from Map to object if necessary
-    if (result instanceof Map) {
-      score = Number(result.get("score"))
-      message = result.get("message")
-    } else if (result && typeof result === "object") {
-      score = Number(result.score || result.get?.("score") || 0)
-      message = result.message || result.get?.("message") || ""
-    } else {
-      score = Number(result?.score || 0)
-      message = result?.message || ""
-    }
+      console.log("[v0] Contract result:", result)
 
-    // Intentar obtener el hash de la transacción si está disponible
-    let transactionHash: string | undefined
-    if (result && typeof result === "object" && "transactionHash" in result) {
-      transactionHash = result.transactionHash as string
-    }
+      let score = 0
+      let message = ""
 
-    return {
-      score,
-      message,
-      // No transactionHash since this is a read-only call
+      // Convert the result from Map to object if necessary
+      if (result instanceof Map) {
+        score = Number(result.get("score"))
+        message = result.get("message")
+      } else if (result && typeof result === "object") {
+        score = Number(result.score || result.get?.("score") || 0)
+        message = result.message || result.get?.("message") || ""
+      } else {
+        score = Number(result?.score || 0)
+        message = result?.message || ""
+      }
+
+      return {
+        score,
+        message,
+      }
+    } catch (error: any) {
+      console.error("[v0] Contract call error:", error)
+      throw new Error(error.message || "Failed to evaluate experience. Please check the contract configuration.")
     }
   }
 
