@@ -1,5 +1,4 @@
 import { useState, useCallback, useEffect } from "react"
-import { generatePrivateKey, privateKeyToAccount } from "genlayer-js"
 import ProofOfArgentineanExperience from "@/lib/contracts/proof-of-argentinean-experience"
 
 const contractAddress = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || "0xA3E6713d0E67002d3C707e64D8E41530385F6CFB"
@@ -24,74 +23,79 @@ export function useProofOfArgentineanExperience(account: any = null) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [consensusProgress, setConsensusProgress] = useState<ConsensusProgress | null>(null)
-  const [generatedAccount, setGeneratedAccount] = useState<any>(null)
+  const [client, setClient] = useState<ProofOfArgentineanExperience | null>(null)
 
   useEffect(() => {
-    if (!account && !generatedAccount) {
-      console.log("[v0] Generating new account for GenLayer client...")
-      const privateKey = generatePrivateKey()
-      const newAccount = privateKeyToAccount(privateKey)
-      setGeneratedAccount(newAccount)
-      console.log("[v0] Generated account:", newAccount.address)
-    }
-  }, [account, generatedAccount])
-
-  const getClient = useCallback(() => {
-    const clientAccount = account || generatedAccount
-    if (!clientAccount) {
-      throw new Error("No account available. Please wait for account generation.")
-    }
-    return new ProofOfArgentineanExperience(contractAddress, clientAccount, studioUrl)
-  }, [account, generatedAccount])
+    console.log("[v0] Creating GenLayer client...")
+    const newClient = new ProofOfArgentineanExperience(contractAddress, account, studioUrl)
+    setClient(newClient)
+    console.log("[v0] Client created with account:", newClient.account.address)
+  }, [account])
 
   const evaluate = useCallback(
     async (description: string, tags: string[] | null = null): Promise<EvaluationResult> => {
+      if (!client) {
+        throw new Error("Client not initialized")
+      }
+
       setLoading(true)
       setError(null)
       setConsensusProgress(null)
 
       try {
-        const client = getClient()
         console.log("[v0] Using account:", client.account.address)
         const result = await client.evaluate(description, tags, (progress) => {
+          console.log("[v0] Consensus progress:", progress)
           setConsensusProgress(progress)
         })
         return result
       } catch (err: any) {
         const errorMessage = err.message || "Error al evaluar la experiencia"
         setError(errorMessage)
-        setConsensusProgress(null)
+        setConsensusProgress({
+          message: errorMessage,
+          progress: 0,
+          error: true,
+        })
         throw err
       } finally {
         setLoading(false)
       }
     },
-    [getClient]
+    [client]
   )
 
   const evaluateWithTracking = useCallback(
     async (description: string, tags: string[] | null = null): Promise<EvaluationResult> => {
+      if (!client) {
+        throw new Error("Client not initialized")
+      }
+
       setLoading(true)
       setError(null)
       setConsensusProgress(null)
 
       try {
-        const client = getClient()
         console.log("[v0] Using account for consensus tracking:", client.account.address)
         const result = await client.evaluateWithConsensusTracking(description, tags, (progress) => {
+          console.log("[v0] Consensus progress:", progress)
           setConsensusProgress(progress)
         })
         return result
       } catch (err: any) {
         const errorMessage = err.message || "Error al evaluar la experiencia"
         setError(errorMessage)
-        setConsensusProgress(null)
+        setConsensusProgress({
+          message: errorMessage,
+          progress: 0,
+          error: true,
+        })
         throw err
       } finally {
         setLoading(false)
       }
     },
-    [getClient]
+    [client]
   )
 
   return { 
@@ -100,6 +104,6 @@ export function useProofOfArgentineanExperience(account: any = null) {
     loading, 
     error, 
     consensusProgress,
-    accountAddress: (account || generatedAccount)?.address 
+    accountAddress: client?.account?.address 
   }
 }
