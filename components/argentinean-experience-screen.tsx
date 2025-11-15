@@ -34,6 +34,8 @@ interface ConsensusProgress {
   message: string
   progress: number
   completed?: boolean
+  status?: string
+  error?: boolean
 }
 
 export default function ArgentineanExperienceScreen() {
@@ -61,7 +63,9 @@ export default function ArgentineanExperienceScreen() {
   const [showConsensusPanel, setShowConsensusPanel] = useState(false)
   const [completedConsensus, setCompletedConsensus] = useState<ConsensusProgress | null>(null)
 
-  const { evaluate, loading: evaluating, error: hookError, consensusProgress } = useProofOfArgentineanExperience()
+  const [useConsensusTracking, setUseConsensusTracking] = useState(false)
+
+  const { evaluate, evaluateWithTracking, loading: evaluating, error: hookError, consensusProgress } = useProofOfArgentineanExperience()
 
   const t = useTranslations()
 
@@ -146,7 +150,9 @@ export default function ArgentineanExperienceScreen() {
 
       console.log("[v0] Starting evaluation with tags:", tags)
 
-      const evaluationResult = await evaluate(description, tags)
+      const evaluationResult = useConsensusTracking
+        ? await evaluateWithTracking(description, tags)
+        : await evaluate(description, tags)
 
       console.log("[v0] Evaluation result:", evaluationResult)
 
@@ -424,6 +430,23 @@ export default function ArgentineanExperienceScreen() {
                     </div>
                   </div>
 
+                  <div>
+                    <label className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={useConsensusTracking}
+                        onChange={(e) => setUseConsensusTracking(e.target.checked)}
+                        className="mr-2 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <span className="text-sm text-foreground">
+                        Usar rastreo de consenso (muestra estados reales de la transacción)
+                      </span>
+                    </label>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Cuando está activado, se genera una transacción rastreable que muestra los estados reales del proceso de consenso de GenLayer
+                    </p>
+                  </div>
+
                   <Button type="submit" disabled={!description || evaluating || savingToLeaderboard} className="w-full">
                     {evaluating || savingToLeaderboard ? (
                       <>
@@ -446,7 +469,7 @@ export default function ArgentineanExperienceScreen() {
             </Card>
 
             {showConsensusPanel && (
-              <Card className="border-2 border-info">
+              <Card className={`border-2 ${consensusProgress?.error ? "border-destructive" : "border-info"}`}>
                 <CardHeader>
                   <CardTitle className="flex items-center">
                     {!(completedConsensus?.completed || consensusProgress?.completed) ? (
@@ -454,12 +477,16 @@ export default function ArgentineanExperienceScreen() {
                     ) : (
                       <span className="mr-2 text-2xl">✓</span>
                     )}
-                    Proceso de Consenso GenLayer
+                    {consensusProgress?.status
+                      ? `Proceso de Consenso - ${consensusProgress.status}`
+                      : "Proceso de Consenso GenLayer"}
                   </CardTitle>
                   <CardDescription>
-                    {!(completedConsensus?.completed || consensusProgress?.completed)
-                      ? "El sistema está ejecutando múltiples evaluaciones hasta alcanzar consenso"
-                      : "Consenso alcanzado exitosamente"}
+                    {consensusProgress?.status
+                      ? "Estados reales del proceso de consenso de GenLayer"
+                      : !(completedConsensus?.completed || consensusProgress?.completed)
+                        ? "El sistema está ejecutando múltiples evaluaciones hasta alcanzar consenso"
+                        : "Consenso alcanzado exitosamente"}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -469,9 +496,11 @@ export default function ArgentineanExperienceScreen() {
                       <>
                         <div className="mb-4">
                           <div className="mb-2 flex items-center justify-between">
-                            <span className="text-sm font-medium text-foreground">{currentProgress?.message}</span>
+                            <span className={`text-sm font-medium ${currentProgress?.error ? "text-destructive" : "text-foreground"}`}>
+                              {currentProgress?.message}
+                            </span>
                             <span
-                              className={`text-sm font-medium ${currentProgress?.completed ? "text-success" : "text-info"}`}
+                              className={`text-sm font-medium ${currentProgress?.error ? "text-destructive" : currentProgress?.completed ? "text-success" : "text-info"}`}
                             >
                               {currentProgress?.progress}%
                             </span>
@@ -479,78 +508,126 @@ export default function ArgentineanExperienceScreen() {
                           <div className="h-3 w-full rounded-full bg-muted">
                             <div
                               className={`h-3 rounded-full transition-all duration-700 ease-out ${
-                                currentProgress?.completed ? "bg-success" : "bg-info"
+                                currentProgress?.error ? "bg-destructive" : currentProgress?.completed ? "bg-success" : "bg-info"
                               }`}
                               style={{ width: `${currentProgress?.progress}%` }}
                             />
                           </div>
-                          <div className="mt-2 text-xs text-muted-foreground">
-                            Paso {currentProgress?.step} de {currentProgress?.totalSteps}
-                          </div>
+                          {currentProgress?.step && currentProgress?.totalSteps && (
+                            <div className="mt-2 text-xs text-muted-foreground">
+                              Paso {currentProgress?.step} de {currentProgress?.totalSteps}
+                            </div>
+                          )}
                         </div>
 
-                        <div className="mt-4 space-y-2">
-                          {[
-                            "Iniciando evaluación...",
-                            "Conectando con nodos validadores...",
-                            "Ejecutando primera evaluación con LLM...",
-                            "Esperando respuesta del primer nodo...",
-                            "Ejecutando segunda evaluación para consenso...",
-                            "Esperando respuesta del segundo nodo...",
-                            "Comparando resultados entre nodos...",
-                            "Ejecutando tercera evaluación (si es necesario)...",
-                            "Validando consenso entre nodos...",
-                            "Finalizando proceso de consenso...",
-                            "Consenso alcanzado ✓",
-                          ].map((stepName, index) => {
-                            const stepNumber = index + 1
-                            const isCompleted = stepNumber < (currentProgress?.step || 0)
-                            const isCurrent = stepNumber === currentProgress?.step && !currentProgress?.completed
-                            const isConsensusComplete = currentProgress?.completed && stepNumber === currentProgress?.step
+                        {currentProgress?.status ? (
+                          <div className="mt-4 space-y-2">
+                            {["PENDING", "PROPOSING", "COMMITTING", "REVEALING", "ACCEPTED", "FINALIZED"].map((status) => {
+                              const isCurrent = currentProgress.status === status
+                              const statusOrder = ["PENDING", "PROPOSING", "COMMITTING", "REVEALING", "ACCEPTED", "FINALIZED"]
+                              const currentIndex = statusOrder.indexOf(currentProgress.status || "")
+                              const statusIndex = statusOrder.indexOf(status)
+                              const isCompleted = statusIndex < currentIndex
 
-                            return (
-                              <div
-                                key={stepNumber}
-                                className={`flex items-center rounded-lg p-3 transition-all duration-500 ${
-                                  isCompleted
-                                    ? "border border-success bg-success/10"
-                                    : isCurrent
-                                      ? "border-2 border-info bg-info/10 shadow-md"
-                                      : isConsensusComplete
-                                        ? "border-2 border-success bg-success/20 shadow-lg"
-                                        : "border border-border bg-muted/30"
-                                }`}
-                              >
+                              return (
                                 <div
-                                  className={`mr-3 flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold transition-all duration-500 ${
+                                  key={status}
+                                  className={`flex items-center rounded-lg p-3 transition-all duration-500 ${
                                     isCompleted
-                                      ? "bg-success text-white"
+                                      ? "border border-success bg-success/10"
                                       : isCurrent
-                                        ? "animate-pulse bg-info text-white shadow-lg"
-                                        : isConsensusComplete
-                                          ? "bg-success text-white shadow-lg scale-110"
+                                        ? "border-2 border-info bg-info/10 shadow-md"
+                                        : "border border-border bg-muted/30"
+                                  }`}
+                                >
+                                  <div
+                                    className={`mr-3 flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold transition-all duration-500 ${
+                                      isCompleted
+                                        ? "bg-success text-white"
+                                        : isCurrent
+                                          ? "animate-pulse bg-info text-white shadow-lg"
                                           : "bg-muted text-muted-foreground"
-                                  }`}
-                                >
-                                  {isCompleted || isConsensusComplete ? "✓" : stepNumber}
-                                </div>
-                                <span
-                                  className={`text-sm transition-all duration-500 ${
-                                    isCompleted
-                                      ? "font-medium text-success"
-                                      : isCurrent
-                                        ? "font-semibold text-info"
-                                        : isConsensusComplete
-                                          ? "font-bold text-success"
+                                    }`}
+                                  >
+                                    {isCompleted ? "✓" : "•"}
+                                  </div>
+                                  <span
+                                    className={`text-sm transition-all duration-500 ${
+                                      isCompleted
+                                        ? "font-medium text-success"
+                                        : isCurrent
+                                          ? "font-semibold text-info"
                                           : "text-muted-foreground"
-                                  }`}
-                                >
-                                  {stepName}
-                                </span>
-                              </div>
-                            )
-                          })}
-                        </div>
+                                    }`}
+                                  >
+                                    {status}
+                                  </span>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        ) : (
+                          currentProgress?.totalSteps && (
+                            <div className="mt-4 space-y-2">
+                              {[
+                                "Iniciando evaluación...",
+                                "Ejecutando primera evaluación con LLM...",
+                                "Ejecutando segunda evaluación para consenso...",
+                                "Comparando resultados...",
+                                "Ejecutando tercera evaluación (si es necesario)...",
+                                "Validando consenso...",
+                                "Consenso alcanzado ✓",
+                              ].map((stepName, index) => {
+                                const stepNumber = index + 1
+                                const isCompleted = stepNumber < (currentProgress?.step || 0)
+                                const isCurrent = stepNumber === currentProgress?.step && !currentProgress?.completed
+                                const isConsensusComplete = currentProgress?.completed && stepNumber === currentProgress?.step
+
+                                return (
+                                  <div
+                                    key={stepNumber}
+                                    className={`flex items-center rounded-lg p-3 transition-all duration-500 ${
+                                      isCompleted
+                                        ? "border border-success bg-success/10"
+                                        : isCurrent
+                                          ? "border-2 border-info bg-info/10 shadow-md"
+                                          : isConsensusComplete
+                                            ? "border-2 border-success bg-success/20 shadow-lg"
+                                            : "border border-border bg-muted/30"
+                                    }`}
+                                  >
+                                    <div
+                                      className={`mr-3 flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold transition-all duration-500 ${
+                                        isCompleted
+                                          ? "bg-success text-white"
+                                          : isCurrent
+                                            ? "animate-pulse bg-info text-white shadow-lg"
+                                            : isConsensusComplete
+                                              ? "scale-110 bg-success text-white shadow-lg"
+                                              : "bg-muted text-muted-foreground"
+                                      }`}
+                                    >
+                                      {isCompleted || isConsensusComplete ? "✓" : stepNumber}
+                                    </div>
+                                    <span
+                                      className={`text-sm transition-all duration-500 ${
+                                        isCompleted
+                                          ? "font-medium text-success"
+                                          : isCurrent
+                                            ? "font-semibold text-info"
+                                            : isConsensusComplete
+                                              ? "font-bold text-success"
+                                              : "text-muted-foreground"
+                                      }`}
+                                    >
+                                      {stepName}
+                                    </span>
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          )
+                        )}
                       </>
                     )
                   })()}
