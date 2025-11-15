@@ -75,7 +75,7 @@ class ProofOfArgentineanExperience {
     let score = 0
     let message = ""
 
-    // Convertir el resultado de Map a objeto si es necesario
+    // Convert the result from Map to object if necessary
     if (result instanceof Map) {
       score = Number(result.get("score"))
       message = result.get("message")
@@ -87,6 +87,12 @@ class ProofOfArgentineanExperience {
       message = result?.message || ""
     }
 
+    // Intentar obtener el hash de la transacción si está disponible
+    let transactionHash: string | undefined
+    if (result && typeof result === "object" && "transactionHash" in result) {
+      transactionHash = result.transactionHash as string
+    }
+
     return {
       score,
       message,
@@ -96,12 +102,11 @@ class ProofOfArgentineanExperience {
 
   async getTransactionDetails(transactionHash: string): Promise<TransactionDetails | null> {
     try {
-      console.log("[v0] Fetching transaction details for:", transactionHash)
-      
+      // Intentar obtener detalles de la transacción desde el endpoint de genlayer
       const response = await fetch(`${this.endpoint}/transactions/${transactionHash}`)
 
       if (!response.ok) {
-        console.log("[v0] Transaction not found via REST API, trying RPC method...")
+        // Si no hay endpoint específico, intentar con el cliente
         try {
           const rpcResponse = await fetch(this.endpoint, {
             method: 'POST',
@@ -131,6 +136,7 @@ class ProofOfArgentineanExperience {
       return this.parseTransactionDetails(data, transactionHash)
     } catch (error) {
       console.error("[v0] Error fetching transaction details:", error)
+      // Retornar datos mock para desarrollo/demo
       return this.getMockTransactionDetails(transactionHash)
     }
   }
@@ -160,7 +166,7 @@ class ProofOfArgentineanExperience {
   }
 
   private getMockTransactionDetails(transactionHash: string): TransactionDetails {
-    // Datos mock basados en la imagen proporcionada
+    // Mock data based on the provided image
     return {
       transactionHash,
       status: "FINALIZED",

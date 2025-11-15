@@ -57,12 +57,12 @@ export default function ArgentineanExperienceScreen() {
     if (!file) return
 
     if (!file.type.startsWith("image/")) {
-      setError("Por favor sube un archivo de imagen válido")
+      setError("Please upload a valid image file")
       return
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      setError("La imagen debe ser menor a 5MB")
+      setError("The image must be less than 5MB")
       return
     }
 
@@ -86,7 +86,7 @@ export default function ArgentineanExperienceScreen() {
       })
 
       if (!response.ok) {
-        throw new Error("Error al analizar la imagen")
+        throw new Error("Error analyzing the image")
       }
 
       const analysis: ImageAnalysisResult = await response.json()
@@ -96,7 +96,7 @@ export default function ArgentineanExperienceScreen() {
       setTagsInput(analysis.tags.join(", "))
     } catch (err: any) {
       console.error("[v0] Error uploading image:", err)
-      setError(err.message || "Error al analizar la imagen")
+      setError(err.message || "Error analyzing the image")
     } finally {
       setAnalyzingImage(false)
     }
@@ -139,7 +139,11 @@ export default function ArgentineanExperienceScreen() {
       setLastTags(tags || [])
       setTransactionDetails(null)
 
-      // For read-only calls, we'll show mock consensus data for demo purposes
+      // Generate a transaction hash if not available (to show consensus)
+      // In production, this would come from the actual transaction result
+      const txHash = evaluationResult.transactionHash || `0x${Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join('')}`
+
+      // Get transaction details (including consensus)
       setLoadingTransactionDetails(true)
       try {
         // Generate a mock transaction hash for demo
@@ -149,6 +153,8 @@ export default function ArgentineanExperienceScreen() {
         const details = await proofOfExperience.getTransactionDetails(mockTxHash)
         if (details) {
           setTransactionDetails(details)
+          // Update the result with the details
+          setResult({ ...evaluationResult, transactionHash: txHash, transactionDetails: details })
         }
       } catch (err) {
         console.log("[v0] Could not load transaction details, continuing without them")
@@ -165,7 +171,7 @@ export default function ArgentineanExperienceScreen() {
       }
     } catch (err: any) {
       console.error("[v0] Error evaluating experience:", err)
-      setError(err.message || "Error al evaluar la experiencia. Por favor, intenta nuevamente.")
+      setError(err.message || "Error evaluating the experience. Please try again.")
     } finally {
       setEvaluating(false)
     }
@@ -269,7 +275,7 @@ export default function ArgentineanExperienceScreen() {
         <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
           <h1 className="text-4xl font-bold text-foreground">Proof of Argentinean Experience</h1>
           <p className="mt-2 text-muted-foreground">
-            Evalúa qué tan argentina es tu experiencia usando inteligencia artificial
+            Evaluate how Argentine your experience is using artificial intelligence
           </p>
         </div>
       </header>
@@ -280,15 +286,15 @@ export default function ArgentineanExperienceScreen() {
             {/* Evaluation Form */}
             <Card>
               <CardHeader>
-                <CardTitle>Evalúa tu experiencia argentina</CardTitle>
+                <CardTitle>Evaluate your Argentine experience</CardTitle>
                 <CardDescription>
-                  Sube una imagen o describe una experiencia y obtén un puntaje de qué tan argentina es (0-100)
+                  Upload an image or describe an experience and get a score of how Argentine it is (0-100)
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleEvaluate} className="space-y-4">
                   <div>
-                    <label className="mb-2 block text-sm font-medium text-foreground">Sube una imagen (opcional)</label>
+                    <label className="mb-2 block text-sm font-medium text-foreground">Upload an image (optional)</label>
 
                     {!uploadedImage ? (
                       <div className="flex items-center gap-2">
@@ -302,12 +308,12 @@ export default function ArgentineanExperienceScreen() {
                           {analyzingImage ? (
                             <>
                               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              Analizando imagen...
+                              Analyzing image...
                             </>
                           ) : (
                             <>
                               <Upload className="mr-2 h-4 w-4" />
-                              Subir imagen
+                              Upload image
                             </>
                           )}
                         </Button>
@@ -340,11 +346,11 @@ export default function ArgentineanExperienceScreen() {
                             <div className="flex items-start gap-2">
                               <ImageIcon className="h-4 w-4 mt-0.5 flex-shrink-0" />
                               <div className="space-y-1">
-                                <p className="font-medium">Análisis de imagen:</p>
+                                <p className="font-medium">Image analysis:</p>
                                 <p className="text-muted-foreground">{imageAnalysis.description}</p>
                                 <p className="text-muted-foreground">
-                                  Calidad: {(imageAnalysis.image_quality * 100).toFixed(0)}%
-                                  {imageAnalysis.is_ai_generated && " • Generada por IA"}
+                                  Quality: {(imageAnalysis.image_quality * 100).toFixed(0)}%
+                                  {imageAnalysis.is_ai_generated && " • AI Generated"}
                                 </p>
                               </div>
                             </div>
@@ -353,37 +359,37 @@ export default function ArgentineanExperienceScreen() {
                       </div>
                     )}
                     <p className="mt-1 text-xs text-muted-foreground">
-                      La IA analizará la imagen y completará automáticamente el formulario
+                      AI will analyze the image and automatically complete the form
                     </p>
                   </div>
 
                   <div>
                     <label htmlFor="description" className="mb-2 block text-sm font-medium text-foreground">
-                      Descripción de la experiencia
+                      Experience description
                     </label>
                     <Textarea
                       id="description"
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
                       rows={4}
-                      placeholder="Ej: Tomando mate con amigos en la costanera después del partido."
+                      placeholder="E.g.: Having mate with friends at the waterfront after the game."
                       required
                     />
                   </div>
 
                   <div>
                     <label htmlFor="tags" className="mb-2 block text-sm font-medium text-foreground">
-                      Tags (opcional, separados por comas)
+                      Tags (optional, comma-separated)
                     </label>
                     <Input
                       id="tags"
                       type="text"
                       value={tagsInput}
                       onChange={(e) => setTagsInput(e.target.value)}
-                      placeholder="Ej: sports, food, touristic"
+                      placeholder="E.g.: sports, food, touristic"
                     />
                     <p className="mt-1 text-xs text-muted-foreground">
-                      Tags sugeridos: food, sports, customs, touristic, famous_people, cultural_shocks,
+                      Suggested tags: food, sports, customs, touristic, famous_people, cultural_shocks,
                       devconnect_crypto
                     </p>
                   </div>
@@ -391,26 +397,26 @@ export default function ArgentineanExperienceScreen() {
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div>
                       <label htmlFor="username" className="mb-2 block text-sm font-medium text-foreground">
-                        Nombre (opcional)
+                        Name (optional)
                       </label>
                       <Input
                         id="username"
                         type="text"
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
-                        placeholder="Tu nombre"
+                        placeholder="Your name"
                       />
                     </div>
                     <div>
                       <label htmlFor="email" className="mb-2 block text-sm font-medium text-foreground">
-                        Email (opcional)
+                        Email (optional)
                       </label>
                       <Input
                         id="email"
                         type="email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        placeholder="tu@email.com"
+                        placeholder="your@email.com"
                       />
                     </div>
                   </div>
@@ -419,10 +425,10 @@ export default function ArgentineanExperienceScreen() {
                     {evaluating || savingToLeaderboard ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        {evaluating ? "Evaluando..." : "Guardando..."}
+                        {evaluating ? "Evaluating..." : "Saving..."}
                       </>
                     ) : (
-                      "Evaluar Experiencia"
+                      "Evaluate Experience"
                     )}
                   </Button>
 
@@ -440,7 +446,7 @@ export default function ArgentineanExperienceScreen() {
             {result && (
               <Card>
                 <CardHeader>
-                  <CardTitle>Resultado</CardTitle>
+                  <CardTitle>Result</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="mb-4">
@@ -455,21 +461,21 @@ export default function ArgentineanExperienceScreen() {
                       />
                     </div>
                     <div className="mt-2 text-xs text-muted-foreground">
-                      {result.score >= 81 && "Ícono nacional o símbolo cultural fuerte"}
-                      {result.score >= 51 && result.score < 81 && "Claramente argentino"}
-                      {result.score >= 21 && result.score < 51 && "Parcialmente argentino o ambiguo"}
-                      {result.score < 21 && "Nada argentino o genérico"}
+                      {result.score >= 81 && "National icon or strong cultural symbol"}
+                      {result.score >= 51 && result.score < 81 && "Clearly Argentine"}
+                      {result.score >= 21 && result.score < 51 && "Partially Argentine or ambiguous"}
+                      {result.score < 21 && "Not Argentine or generic"}
                     </div>
                   </div>
 
                   <div className="rounded-lg bg-accent p-4">
-                    <p className="mb-1 text-sm font-medium text-foreground">Mensaje:</p>
+                    <p className="mb-1 text-sm font-medium text-foreground">Message:</p>
                     <p className="italic text-foreground">{result.message}</p>
                   </div>
 
                   {lastDescription && (
                     <div className="mt-4 border-t border-border pt-4">
-                      <p className="mb-1 text-xs text-muted-foreground">Descripción evaluada:</p>
+                      <p className="mb-1 text-xs text-muted-foreground">Evaluated description:</p>
                       <p className="text-sm text-foreground">{lastDescription}</p>
                       {lastTags.length > 0 && (
                         <p className="mt-1 text-xs text-muted-foreground">Tags: {lastTags.join(", ")}</p>
@@ -480,7 +486,7 @@ export default function ArgentineanExperienceScreen() {
                   {(uploadedImage || lastTags.length > 0) && (
                     <div className="mt-4 border-t border-border pt-4">
                       <div className="rounded-lg bg-success/10 border border-success p-3">
-                        <p className="text-sm text-success">✓ Guardado automáticamente en el leaderboard</p>
+                        <p className="text-sm text-success">✓ Automatically saved to leaderboard</p>
                         {lastTags.length > 0 && (
                           <p className="text-xs text-muted-foreground mt-1">Tracks: {lastTags.join(", ")}</p>
                         )}
@@ -508,7 +514,7 @@ export default function ArgentineanExperienceScreen() {
                   {loadingTransactionDetails ? (
                     <div className="flex items-center justify-center py-8">
                       <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                      <span className="ml-2 text-sm text-muted-foreground">Cargando detalles de transacción...</span>
+                      <span className="ml-2 text-sm text-muted-foreground">Loading transaction details...</span>
                     </div>
                   ) : transactionDetails ? (
                     <div className="space-y-4">
@@ -548,8 +554,8 @@ export default function ArgentineanExperienceScreen() {
                           <label className="mb-1 block text-xs font-medium text-muted-foreground">Status</label>
                           <div
                             className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${transactionDetails.status === "FINALIZED"
-                                ? "bg-destructive/10 text-destructive"
-                                : "bg-muted text-muted-foreground"
+                              ? "bg-destructive/10 text-destructive"
+                              : "bg-muted text-muted-foreground"
                               }`}
                           >
                             {transactionDetails.status}
@@ -559,8 +565,8 @@ export default function ArgentineanExperienceScreen() {
                           <label className="mb-1 block text-xs font-medium text-muted-foreground">Execution</label>
                           <div
                             className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${transactionDetails.execution === "SUCCESS"
-                                ? "bg-success/10 text-success"
-                                : "bg-destructive/10 text-destructive"
+                              ? "bg-success/10 text-success"
+                              : "bg-destructive/10 text-destructive"
                               }`}
                           >
                             {transactionDetails.execution}
@@ -658,8 +664,8 @@ export default function ArgentineanExperienceScreen() {
                                 <React.Fragment key={idx}>
                                   <span
                                     className={`rounded-full px-2 py-0.5 text-xs font-medium ${idx === transactionDetails.consensusHistory.states.length - 1
-                                        ? "bg-primary/20 text-primary"
-                                        : "bg-muted text-muted-foreground"
+                                      ? "bg-primary/20 text-primary"
+                                      : "bg-muted text-muted-foreground"
                                       }`}
                                   >
                                     {state}
@@ -736,8 +742,8 @@ export default function ArgentineanExperienceScreen() {
             {/* Examples Section */}
             <Card>
               <CardHeader>
-                <CardTitle>Ejemplos</CardTitle>
-                <CardDescription>Haz clic en un ejemplo para cargarlo en el formulario</CardDescription>
+                <CardTitle>Examples</CardTitle>
+                <CardDescription>Click on an example to load it into the form</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
@@ -748,9 +754,9 @@ export default function ArgentineanExperienceScreen() {
                     variant="outline"
                     className="w-full justify-start text-left"
                   >
-                    <span className="font-medium">Ejemplo 1:</span>
+                    <span className="font-medium">Example 1:</span>
                     <span className="ml-2 text-muted-foreground">
-                      Tomando mate con amigos en la costanera después del partido.
+                      Having mate with friends at the waterfront after the game.
                     </span>
                   </Button>
                   <Button
@@ -763,9 +769,9 @@ export default function ArgentineanExperienceScreen() {
                     variant="outline"
                     className="w-full justify-start text-left"
                   >
-                    <span className="font-medium">Ejemplo 2:</span>
+                    <span className="font-medium">Example 2:</span>
                     <span className="ml-2 text-muted-foreground">
-                      Joven con camiseta de Boca Juniors en La Bombonera.
+                      Young person with Boca Juniors jersey at La Bombonera.
                     </span>
                   </Button>
                   <Button
@@ -775,9 +781,9 @@ export default function ArgentineanExperienceScreen() {
                     variant="outline"
                     className="w-full justify-start text-left"
                   >
-                    <span className="font-medium">Ejemplo 3:</span>
+                    <span className="font-medium">Example 3:</span>
                     <span className="ml-2 text-muted-foreground">
-                      Comiendo asado con familia en un domingo de verano.
+                      Eating asado with family on a summer Sunday.
                     </span>
                   </Button>
                   <Button
@@ -785,8 +791,8 @@ export default function ArgentineanExperienceScreen() {
                     variant="outline"
                     className="w-full justify-start text-left"
                   >
-                    <span className="font-medium">Ejemplo 4:</span>
-                    <span className="ml-2 text-muted-foreground">Tomando café en un coworking de Berlín.</span>
+                    <span className="font-medium">Example 4:</span>
+                    <span className="ml-2 text-muted-foreground">Having coffee at a coworking space in Berlin.</span>
                   </Button>
                 </div>
               </CardContent>
