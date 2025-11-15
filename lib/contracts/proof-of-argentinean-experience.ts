@@ -39,13 +39,17 @@ class ProofOfArgentineanExperience {
     onConsensusProgress?: (progress: ConsensusProgress) => void
   ) {
     const consensusSteps = [
-      "Iniciando evaluación...",
-      "Ejecutando primera evaluación con LLM...",
-      "Ejecutando segunda evaluación para consenso...",
-      "Comparando resultados...",
-      "Ejecutando tercera evaluación (si es necesario)...",
-      "Validando consenso...",
-      "Consenso alcanzado ✓",
+      { name: "Iniciando evaluación...", status: "pending" },
+      { name: "Conectando con nodos validadores...", status: "pending" },
+      { name: "Ejecutando primera evaluación con LLM...", status: "pending" },
+      { name: "Esperando respuesta del primer nodo...", status: "pending" },
+      { name: "Ejecutando segunda evaluación para consenso...", status: "pending" },
+      { name: "Esperando respuesta del segundo nodo...", status: "pending" },
+      { name: "Comparando resultados entre nodos...", status: "pending" },
+      { name: "Ejecutando tercera evaluación (si es necesario)...", status: "pending" },
+      { name: "Validando consenso entre nodos...", status: "pending" },
+      { name: "Finalizando proceso de consenso...", status: "pending" },
+      { name: "Consenso alcanzado ✓", status: "pending" },
     ]
 
     let stepIndex = 0
@@ -54,12 +58,12 @@ class ProofOfArgentineanExperience {
         onConsensusProgress({
           step: stepIndex + 1,
           totalSteps: consensusSteps.length,
-          message: consensusSteps[stepIndex],
+          message: consensusSteps[stepIndex].name,
           progress: Math.round(((stepIndex + 1) / consensusSteps.length) * 100),
         })
         stepIndex++
       }
-    }, 1500) // Update every 1.5 seconds
+    }, 2500)
 
     try {
       const result = await this.client.readContract({

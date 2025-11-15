@@ -437,79 +437,103 @@ export default function ArgentineanExperienceScreen() {
             </Card>
 
             {/* Consensus Process Visualization */}
-            {consensusProgress && (
+            {(consensusProgress || (result && consensusProgress)) && (
               <Card className="border-2 border-info">
                 <CardHeader>
                   <CardTitle className="flex items-center">
-                    <Loader2 className="mr-2 h-5 w-5 animate-spin text-info" />
-                    Proceso de Consenso
+                    {!consensusProgress?.completed ? (
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin text-info" />
+                    ) : (
+                      <span className="mr-2 text-2xl">✓</span>
+                    )}
+                    Proceso de Consenso GenLayer
                   </CardTitle>
                   <CardDescription>
-                    El sistema está ejecutando múltiples evaluaciones hasta alcanzar consenso
+                    {!consensusProgress?.completed
+                      ? "El sistema está ejecutando múltiples evaluaciones hasta alcanzar consenso"
+                      : "Consenso alcanzado exitosamente"}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="mb-4">
                     <div className="mb-2 flex items-center justify-between">
-                      <span className="text-sm font-medium text-foreground">{consensusProgress.message}</span>
-                      <span className="text-sm font-medium text-info">{consensusProgress.progress}%</span>
+                      <span className="text-sm font-medium text-foreground">{consensusProgress?.message}</span>
+                      <span
+                        className={`text-sm font-medium ${consensusProgress?.completed ? "text-success" : "text-info"}`}
+                      >
+                        {consensusProgress?.progress}%
+                      </span>
                     </div>
                     <div className="h-3 w-full rounded-full bg-muted">
                       <div
-                        className="h-3 rounded-full bg-info transition-all duration-500 ease-out"
-                        style={{ width: `${consensusProgress.progress}%` }}
+                        className={`h-3 rounded-full transition-all duration-700 ease-out ${
+                          consensusProgress?.completed ? "bg-success" : "bg-info"
+                        }`}
+                        style={{ width: `${consensusProgress?.progress}%` }}
                       />
                     </div>
                     <div className="mt-2 text-xs text-muted-foreground">
-                      Paso {consensusProgress.step} de {consensusProgress.totalSteps}
+                      Paso {consensusProgress?.step} de {consensusProgress?.totalSteps}
                     </div>
                   </div>
 
-                  {/* Consensus Steps Visualization */}
                   <div className="mt-4 space-y-2">
-                    {Array.from({ length: consensusProgress.totalSteps }).map((_, index) => {
+                    {[
+                      "Iniciando evaluación...",
+                      "Conectando con nodos validadores...",
+                      "Ejecutando primera evaluación con LLM...",
+                      "Esperando respuesta del primer nodo...",
+                      "Ejecutando segunda evaluación para consenso...",
+                      "Esperando respuesta del segundo nodo...",
+                      "Comparando resultados entre nodos...",
+                      "Ejecutando tercera evaluación (si es necesario)...",
+                      "Validando consenso entre nodos...",
+                      "Finalizando proceso de consenso...",
+                      "Consenso alcanzado ✓",
+                    ].map((stepName, index) => {
                       const stepNumber = index + 1
-                      const isCompleted = stepNumber < consensusProgress.step
-                      const isCurrent = stepNumber === consensusProgress.step
+                      const isCompleted = stepNumber < (consensusProgress?.step || 0)
+                      const isCurrent = stepNumber === consensusProgress?.step && !consensusProgress?.completed
+                      const isConsensusComplete = consensusProgress?.completed && stepNumber === consensusProgress?.step
 
                       return (
                         <div
                           key={stepNumber}
-                          className={`flex items-center rounded p-2 ${
+                          className={`flex items-center rounded-lg p-3 transition-all duration-500 ${
                             isCompleted
                               ? "border border-success bg-success/10"
                               : isCurrent
-                                ? "border-2 border-info bg-info/10"
-                                : "border border-border bg-muted/50"
+                                ? "border-2 border-info bg-info/10 shadow-md"
+                                : isConsensusComplete
+                                  ? "border-2 border-success bg-success/20 shadow-lg"
+                                  : "border border-border bg-muted/30"
                           }`}
                         >
                           <div
-                            className={`mr-3 flex h-6 w-6 items-center justify-center rounded-full ${
+                            className={`mr-3 flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold transition-all duration-500 ${
                               isCompleted
                                 ? "bg-success text-white"
                                 : isCurrent
-                                  ? "animate-pulse bg-info text-white"
-                                  : "bg-muted text-muted-foreground"
+                                  ? "animate-pulse bg-info text-white shadow-lg"
+                                  : isConsensusComplete
+                                    ? "bg-success text-white shadow-lg scale-110"
+                                    : "bg-muted text-muted-foreground"
                             }`}
                           >
-                            {isCompleted ? "✓" : stepNumber}
+                            {isCompleted || isConsensusComplete ? "✓" : stepNumber}
                           </div>
                           <span
-                            className={`text-sm ${
+                            className={`text-sm transition-all duration-500 ${
                               isCompleted
                                 ? "font-medium text-success"
                                 : isCurrent
-                                  ? "font-medium text-info"
-                                  : "text-muted-foreground"
+                                  ? "font-semibold text-info"
+                                  : isConsensusComplete
+                                    ? "font-bold text-success"
+                                    : "text-muted-foreground"
                             }`}
                           >
-                            {stepNumber === 1 && "Iniciando evaluación..."}
-                            {stepNumber === 2 && "Ejecutando primera evaluación con LLM..."}
-                            {stepNumber === 3 && "Ejecutando segunda evaluación para consenso..."}
-                            {stepNumber === 4 && "Comparando resultados..."}
-                            {stepNumber === 5 && "Ejecutando tercera evaluación (si es necesario)..."}
-                            {stepNumber === 6 && "Validando consenso..."}
-                            {stepNumber === 7 && "Consenso alcanzado ✓"}
+                            {stepName}
                           </span>
                         </div>
                       )
