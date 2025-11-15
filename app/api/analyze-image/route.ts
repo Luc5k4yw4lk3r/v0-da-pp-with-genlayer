@@ -6,7 +6,8 @@ const imageAnalysisSchema = z.object({
   description: z.string().max(300).describe("description in English (max. 300 characters)"),
   tags: z
     .array(z.enum(TRACKS as [string, ...string[]]))
-    .describe("detected categories"),
+    .max(2)
+    .describe("detected categories (maximum 2, prioritize the most preponderant)"),
   image_quality: z.number().min(0).max(1).describe("value 0–1"),
   is_ai_generated: z.boolean().describe("True if it appears to be AI-generated"),
   metadata: z.record(z.any()).optional().describe("optional info (dimensions, average color, etc.)"),
@@ -39,8 +40,8 @@ Analyze this image and generate a JSON with the following structure:
    - "Touristic locations" → well-known places (Obelisco, Caminito, Cataratas, Perito Moreno, etc.)
    - "Sports" → soccer, jerseys, stadiums, balls, fans
    - "Famous people" → recognizable figures (Messi, Maradona, Evita, etc.)
-   - "Crypto" → people with laptops, conferences, Ethereum logos, Vitalik, devconnect, etc.
-   - "Easter eggs" → hidden references, special details, cultural nods
+   - "Crypto" → Ethereum logos, Vitalik, crypto-related content
+   - "Easter eggs" → hidden references, special details, cultural nods, logos of Crecimiento, ZKZync, GenLayer, Ethereum
 
 3. **image_quality**: Number between 0 and 1 representing the photo quality (lighting, sharpness, focus).
 
@@ -50,6 +51,7 @@ Analyze this image and generate a JSON with the following structure:
 
 IMPORTANT: 
 - The description should be short but natural, without value judgments.
+- You can assign a MAXIMUM of 2 tags. Prioritize the most preponderant category first. If multiple categories are present, select only the 2 most relevant ones, ordered by importance.
 - If you cannot determine categories, leave the tags array empty.
 - This analysis does NOT evaluate the degree of Argentineness, it only describes the image.
 `
@@ -72,6 +74,14 @@ IMPORTANT:
       ],
       maxOutputTokens: 2000,
     })
+
+    // Reject AI-generated images
+    if (object.is_ai_generated) {
+      return Response.json(
+        { error: "AI-generated images are not allowed to participate in the game" },
+        { status: 400 }
+      )
+    }
 
     return Response.json(object)
   } catch (error: any) {

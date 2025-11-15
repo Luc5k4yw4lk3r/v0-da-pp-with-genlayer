@@ -137,8 +137,13 @@ export default function ArgentineanExperienceScreen() {
 
       console.log("[v0] Starting evaluation with tags:", tagsForContract)
       console.log("[v0] Validated tracks:", validTracks)
+      console.log("[v0] Image quality:", imageAnalysis?.image_quality)
 
-      const evaluationResult = await proofOfExperience.evaluate(description, tagsForContract)
+      const evaluationResult = await proofOfExperience.evaluate(
+        description,
+        tagsForContract,
+        imageAnalysis?.image_quality
+      )
 
       console.log("[v0] Evaluation result:", evaluationResult)
 

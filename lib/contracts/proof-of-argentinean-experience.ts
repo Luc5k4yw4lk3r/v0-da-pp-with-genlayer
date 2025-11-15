@@ -65,11 +65,23 @@ class ProofOfArgentineanExperience {
     })
   }
 
-  async evaluate(description: string, tags: string[] | null = null): Promise<EvaluationResult> {
+  async evaluate(description: string, tags: string[] | null = null, imageQuality?: number): Promise<EvaluationResult> {
+    const args: any[] = [description]
+    // Always include tags (even if null or empty) before imageQuality to maintain argument order
+    if (tags && tags.length > 0) {
+      args.push(tags)
+    } else if (imageQuality !== undefined && imageQuality !== null) {
+      // If imageQuality is provided but tags is null/empty, pass null for tags to maintain order
+      args.push(null)
+    }
+    if (imageQuality !== undefined && imageQuality !== null) {
+      args.push(imageQuality)
+    }
+
     const result = await this.client.readContract({
       address: this.contractAddress,
       functionName: "evaluate",
-      args: tags ? [description, tags] : [description],
+      args,
     })
 
     let score = 0
@@ -118,7 +130,7 @@ class ProofOfArgentineanExperience {
               id: 1
             })
           })
-          
+
           if (rpcResponse.ok) {
             const rpcData = await rpcResponse.json()
             if (rpcData.result) {
@@ -128,7 +140,7 @@ class ProofOfArgentineanExperience {
         } catch (rpcErr) {
           console.log("[v0] RPC method also failed, using mock data")
         }
-        
+
         return this.getMockTransactionDetails(transactionHash)
       }
 
