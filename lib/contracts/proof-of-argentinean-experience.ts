@@ -66,19 +66,17 @@ class ProofOfArgentineanExperience {
   }
 
   async evaluate(description: string, tags: string[] | null = null, imageQuality?: number): Promise<EvaluationResult> {
-    const args: any[] = [description]
+    // Convert imageQuality to integer 0-100, default to null if not provided
+    const qualityInt = imageQuality !== undefined && imageQuality !== null 
+      ? Math.round(imageQuality * 100) 
+      : null
     
-    // Only add tags if they exist and are not empty
-    if (tags && tags.length > 0) {
-      args.push(tags)
-    }
-    
-    // Only add imageQuality if it's provided
-    if (imageQuality !== undefined && imageQuality !== null) {
-      // Convert float (0.0-1.0) to int (0-100) for GenVM compatibility
-      const qualityInt = Math.round(imageQuality * 100)
-      args.push(qualityInt)
-    }
+    // Always pass all three arguments in order
+    const args: any[] = [
+      description,
+      tags || null,  // Pass null explicitly if no tags
+      qualityInt     // Pass null or the integer quality value
+    ]
 
     console.log("[v0] Calling contract with args:", args)
 
