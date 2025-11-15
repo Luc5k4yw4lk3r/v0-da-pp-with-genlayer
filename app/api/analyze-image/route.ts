@@ -1,14 +1,15 @@
 import { generateObject } from "ai"
 import { z } from "zod"
+import { TRACKS } from "@/lib/redis"
 
 const imageAnalysisSchema = z.object({
-  description: z.string().max(300).describe("descripción en español (máx. 300 caracteres)"),
+  description: z.string().max(300).describe("description in English (max. 300 characters)"),
   tags: z
-    .array(z.enum(["food", "sports", "customs", "touristic", "famous_people", "cultural_shocks", "devconnect_crypto"]))
-    .describe("categorías detectadas"),
-  image_quality: z.number().min(0).max(1).describe("valor 0–1"),
-  is_ai_generated: z.boolean().describe("True si parece generada por IA"),
-  metadata: z.record(z.any()).optional().describe("info opcional (dimensiones, color promedio, etc.)"),
+    .array(z.enum(TRACKS as [string, ...string[]]))
+    .describe("detected categories"),
+  image_quality: z.number().min(0).max(1).describe("value 0–1"),
+  is_ai_generated: z.boolean().describe("True if it appears to be AI-generated"),
+  metadata: z.record(z.any()).optional().describe("optional info (dimensions, average color, etc.)"),
 })
 
 export async function POST(req: Request) {
@@ -17,7 +18,7 @@ export async function POST(req: Request) {
     const file = formData.get("image") as File
 
     if (!file) {
-      return Response.json({ error: "No se proporcionó ninguna imagen" }, { status: 400 })
+      return Response.json({ error: "No image provided" }, { status: 400 })
     }
 
     // Convert file to base64
@@ -26,30 +27,31 @@ export async function POST(req: Request) {
     const base64 = buffer.toString("base64")
 
     const prompt = `
-Analiza esta imagen y genera un JSON con la siguiente estructura:
+Analyze this image and generate a JSON with the following structure:
 
-1. **description**: Una oración que describe lo que se ve en la imagen, en español neutro. Máximo 300 caracteres.
-   Ejemplo: "Grupo de amigos tomando mate en la costanera con vista al río."
+1. **description**: A sentence describing what is seen in the image, in neutral English. Maximum 300 characters.
+   Example: "Group of friends drinking mate at the waterfront with a view of the river."
 
-2. **tags**: Array de categorías detectadas. Opciones:
-   - "food" → comidas, bebidas típicas, parrilla, mate, empanadas, dulce de leche
-   - "sports" → fútbol, camisetas, estadios, pelotas, hinchadas
-   - "customs" → gestos, mates, abrazos, reuniones, sobremesa, asados
-   - "touristic" → lugares conocidos (Obelisco, Caminito, Cataratas, Perito Moreno, etc.)
-   - "famous_people" → personajes reconocibles (Messi, Maradona, Evita, etc.)
-   - "cultural_shocks" → situaciones graciosas, contrastes o costumbres raras
-   - "devconnect_crypto" → personas con laptops, conferencias, logos Ethereum, Vitalik, etc.
+2. **tags**: Array of detected categories. You must use EXACTLY one of these values (respecting capitalization and spaces):
+   - "food" → foods, typical drinks, barbecue, mate, empanadas, dulce de leche
+   - "traditions" → gestures, mates, hugs, gatherings, after-dinner conversations, asados, customs
+   - "Cultural shocks" → funny situations, contrasts or rare customs
+   - "Touristic locations" → well-known places (Obelisco, Caminito, Cataratas, Perito Moreno, etc.)
+   - "Sports" → soccer, jerseys, stadiums, balls, fans
+   - "Famous people" → recognizable figures (Messi, Maradona, Evita, etc.)
+   - "Crypto" → people with laptops, conferences, Ethereum logos, Vitalik, devconnect, etc.
+   - "Easter eggs" → hidden references, special details, cultural nods
 
-3. **image_quality**: Número entre 0 y 1 que representa la calidad de la foto (iluminación, nitidez, enfoque).
+3. **image_quality**: Number between 0 and 1 representing the photo quality (lighting, sharpness, focus).
 
-4. **is_ai_generated**: true si la imagen parece generada por IA (texturas no naturales, sombras imposibles, letras deformadas, arte digital, estilo render).
+4. **is_ai_generated**: true if the image appears to be AI-generated (unnatural textures, impossible shadows, deformed letters, digital art, render style).
 
-5. **metadata**: Objeto opcional con información adicional como dimensiones, color dominante, etc.
+5. **metadata**: Optional object with additional information such as dimensions, dominant color, etc.
 
-IMPORTANTE: 
-- La descripción debe ser corta pero natural, sin juicios de valor.
-- Si no puedes determinar categorías, deja el array de tags vacío.
-- Este análisis NO evalúa el grado de argentinidad, solo describe la imagen.
+IMPORTANT: 
+- The description should be short but natural, without value judgments.
+- If you cannot determine categories, leave the tags array empty.
+- This analysis does NOT evaluate the degree of Argentineness, it only describes the image.
 `
 
     const { object } = await generateObject({
@@ -74,6 +76,6 @@ IMPORTANTE:
     return Response.json(object)
   } catch (error: any) {
     console.error("[v0] Error analyzing image:", error)
-    return Response.json({ error: error.message || "Error al analizar la imagen" }, { status: 500 })
+    return Response.json({ error: error.message || "Error analyzing the image" }, { status: 500 })
   }
 }

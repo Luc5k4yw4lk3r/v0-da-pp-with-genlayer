@@ -12,14 +12,14 @@ export interface LeaderboardEntry {
 }
 
 const TRACKS = [
-  "Food",
-  "Costumbres",
+  "food",
+  "traditions",
   "Cultural shocks",
   "Touristic locations",
   "Sports",
   "Famous people",
-  "Devconnect/Crypto",
-  "Secreto",
+  "Crypto",
+  "Easter eggs",
 ] as const
 
 export type Track = (typeof TRACKS)[number]

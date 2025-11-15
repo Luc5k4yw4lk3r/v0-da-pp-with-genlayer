@@ -52,7 +52,7 @@ export default function Leaderboard() {
       <Card>
         <CardHeader>
           <CardTitle>Leaderboards</CardTitle>
-          <CardDescription>Cargando rankings...</CardDescription>
+          <CardDescription>Loading rankings...</CardDescription>
         </CardHeader>
       </Card>
     )
@@ -65,7 +65,7 @@ export default function Leaderboard() {
           <Trophy className="h-6 w-6 text-yellow-500" />
           Leaderboards - Top 5
         </CardTitle>
-        <CardDescription>Los mejores puntajes por categoría</CardDescription>
+        <CardDescription>Top scores by category</CardDescription>
       </CardHeader>
       <CardContent>
         <Tabs defaultValue={TRACKS[0]} className="w-full">
@@ -116,7 +116,7 @@ export default function Leaderboard() {
                               {entry.username}
                             </p>
                           ) : (
-                            <p className="text-sm text-muted-foreground italic">Anónimo</p>
+                            <p className="text-sm text-muted-foreground italic">Anonymous</p>
                           )}
                         </div>
                         <p className="text-sm text-foreground line-clamp-2">{entry.description}</p>
@@ -138,7 +138,7 @@ export default function Leaderboard() {
                           </div>
                         )}
                         <p className="mt-1 text-xs text-muted-foreground">
-                          {new Date(entry.timestamp).toLocaleDateString("es-AR")}
+                          {new Date(entry.timestamp).toLocaleDateString("en-US")}
                         </p>
                       </div>
                     </div>
@@ -147,8 +147,8 @@ export default function Leaderboard() {
               ) : (
                 <div className="flex flex-col items-center justify-center py-12 text-center">
                   <Trophy className="h-12 w-12 text-muted-foreground/50 mb-3" />
-                  <p className="text-muted-foreground">No hay entradas en este track todavía</p>
-                  <p className="text-sm text-muted-foreground">¡Sé el primero en subir tu experiencia!</p>
+                  <p className="text-muted-foreground">No entries in this track yet</p>
+                  <p className="text-sm text-muted-foreground">Be the first to submit your experience!</p>
                 </div>
               )}
             </TabsContent>

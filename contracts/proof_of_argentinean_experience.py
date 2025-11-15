@@ -9,42 +9,42 @@ class ProofOfArgentineanExperience(gl.Contract):
 
     def _evaluate_experience(self, description: str, tags: list[str] = None) -> dict:
         """
-        Método interno que realiza la evaluación usando el LLM.
+        Internal method that performs the evaluation using the LLM.
         """
-        tags_str = ", ".join(tags) if tags else "ninguna"
+        tags_str = ", ".join(tags) if tags else "none"
 
         task = f"""
-Analiza la siguiente descripción y determina si representa una experiencia culturalmente argentina.
+Analyze the following description and determine if it represents a culturally Argentine experience.
 
-Descripción: {description}
+Description: {description}
 Tags: {tags_str}
 
-Instrucciones:
-1. Analiza la descripción y determina si refleja algo típico o culturalmente argentino.
-2. Asigna un puntaje entre 0 y 100:
-   - 0–20: nada argentino o genérico.
-   - 21–50: parcialmente argentino o ambiguo.
-   - 51–80: claramente argentino (costumbres, comidas, lugares, expresiones).
-   - 81–100: ícono nacional o símbolo cultural fuerte.
-3. Redacta un mensaje breve en español (máx. 200 caracteres), con tono amable o humor local.
-4. Si la descripción menciona:
-   - asado, mate, empanadas, dulce de leche → aumenta el score.
-   - fútbol, Bombonera, Messi, Maradona → aumenta el score.
-   - tango, obelisco, colectivo, "che", "quilombo" → aumenta el score.
-   - devconnect, cripto, ethereum, Vitalik en Buenos Aires → también positivo.
-5. Si no hay ninguna referencia local clara, score bajo y mensaje aclaratorio.
+Instructions:
+1. Analyze the description and determine if it reflects something typical or culturally Argentine.
+2. Assign a score between 0 and 100:
+   - 0–20: not Argentine or generic.
+   - 21–50: partially Argentine or ambiguous.
+   - 51–80: clearly Argentine (customs, foods, places, expressions).
+   - 81–100: national icon or strong cultural symbol.
+3. Write a brief message in English (max. 200 characters), with a friendly tone or local humor.
+4. If the description mentions:
+   - asado, mate, empanadas, dulce de leche → increase the score.
+   - soccer, Bombonera, Messi, Maradona → increase the score.
+   - tango, obelisco, colectivo, "che", "quilombo" → increase the score.
+   - devconnect, crypto, ethereum, Vitalik in Buenos Aires → also positive.
+5. If there is no clear local reference, low score and explanatory message.
 
-Responde ÚNICAMENTE con un JSON válido en este formato exacto:
+Respond ONLY with a valid JSON in this exact format:
 {{
     "score": int,
     "message": str
 }}
 
-IMPORTANTE: 
-- NO incluyas ningún texto fuera del JSON.
-- La salida debe ser perfectamente parseable por un parser JSON.
-- El mensaje debe tener máximo 200 caracteres.
-- El mensaje debe estar en español.
+IMPORTANT: 
+- Do NOT include any text outside the JSON.
+- The output must be perfectly parseable by a JSON parser.
+- The message must have a maximum of 200 characters.
+- The message must be in English.
         """
 
         def get_evaluation() -> dict:
@@ -53,7 +53,7 @@ IMPORTANTE:
 
         result = gl.eq_principle.strict_eq(get_evaluation)
 
-        # Validar que el resultado tenga la estructura correcta
+        # Validate that the result has the correct structure
         if not isinstance(result, dict):
             raise Exception("Invalid response format from LLM")
 
@@ -63,7 +63,7 @@ IMPORTANTE:
         score = int(result["score"])
         message = str(result["message"])
 
-        # Validar rangos
+        # Validate ranges
         if score < 0 or score > 100:
             raise Exception(f"Score out of range: {score}")
 
@@ -75,15 +75,15 @@ IMPORTANTE:
     @gl.public.view
     def evaluate(self, description: str, tags: list[str] = None) -> dict:
         """
-        Evalúa si una descripción representa una experiencia culturalmente argentina.
+        Evaluates if a description represents a culturally Argentine experience.
 
         Args:
-            description: texto breve descriptivo de la experiencia
-            tags: categorías de referencia opcionales (food, sports, devconnect_crypto, etc.)
+            description: brief descriptive text of the experience
+            tags: optional reference categories (food, sports, devconnect_crypto, etc.)
 
         Returns:
-            dict con campos:
-            - score: int (0 a 100)
-            - message: str (texto breve en español, máx. 200 caracteres)
+            dict with fields:
+            - score: int (0 to 100)
+            - message: str (brief text in English, max. 200 characters)
         """
         return self._evaluate_experience(description, tags)

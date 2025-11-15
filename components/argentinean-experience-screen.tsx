@@ -10,7 +10,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Loader2, Upload, X, ImageIcon, Copy, CheckCircle2, XCircle, ChevronRight, ChevronDown } from 'lucide-react'
-import type { LeaderboardEntry } from "@/lib/redis"
+import type { LeaderboardEntry, Track } from "@/lib/redis"
+import { TRACKS } from "@/lib/redis"
 import Leaderboard from "./leaderboard"
 
 const contractAddress = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || "0xA3E6713d0E67002d3C707e64D8E41530385F6CFB"
@@ -121,22 +122,29 @@ export default function ArgentineanExperienceScreen() {
     setEligibleTracks([])
 
     try {
-      const tags = tagsInput
+      const tagsInputArray = tagsInput
         ? tagsInput
           .split(",")
-          .map((t) => t.trim())
-          .filter((t) => t)
-        : null
+          .map((t: string) => t.trim())
+          .filter((t: string) => t)
+        : []
 
-      console.log("[v0] Starting evaluation with tags:", tags)
+      // Validate and normalize tracks
+      const validTracks = validateAndNormalizeTracks(tagsInputArray)
 
-      const evaluationResult = await proofOfExperience.evaluate(description, tags)
+      // Use original tags for contract evaluation (contract may accept any tags)
+      const tagsForContract = tagsInputArray.length > 0 ? tagsInputArray : null
+
+      console.log("[v0] Starting evaluation with tags:", tagsForContract)
+      console.log("[v0] Validated tracks:", validTracks)
+
+      const evaluationResult = await proofOfExperience.evaluate(description, tagsForContract)
 
       console.log("[v0] Evaluation result:", evaluationResult)
 
       setResult(evaluationResult)
       setLastDescription(description)
-      setLastTags(tags || [])
+      setLastTags(validTracks.length > 0 ? validTracks : tagsInputArray)
       setTransactionDetails(null)
 
       // Generate a transaction hash if not available (to show consensus)
@@ -148,7 +156,7 @@ export default function ArgentineanExperienceScreen() {
       try {
         // Generate a mock transaction hash for demo
         const mockTxHash = `0x${Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join('')}`
-        
+
         // Get mock transaction details (will always return mock data for read calls)
         const details = await proofOfExperience.getTransactionDetails(mockTxHash)
         if (details) {
@@ -163,11 +171,11 @@ export default function ArgentineanExperienceScreen() {
         setLoadingTransactionDetails(false)
       }
 
-      if (tags && tags.length > 0) {
+      if (validTracks.length > 0) {
         console.log("[v0] Auto-saving to Redis...")
-        await autoSaveToLeaderboard(evaluationResult.score, tags)
+        await autoSaveToLeaderboard(evaluationResult.score, validTracks)
       } else {
-        console.log("[v0] Not auto-saving: no tags provided")
+        console.log("[v0] Not auto-saving: no valid tracks provided")
       }
     } catch (err: any) {
       console.error("[v0] Error evaluating experience:", err)
@@ -177,14 +185,14 @@ export default function ArgentineanExperienceScreen() {
     }
   }
 
-  const autoSaveToLeaderboard = async (score: number, tags: string[]) => {
+  const autoSaveToLeaderboard = async (score: number, tracks: Track[]) => {
     try {
-      const eligibleTracksToSave: string[] = []
+      const eligibleTracksToSave: Track[] = []
 
-      for (const tag of tags) {
-        const isEligible = await checkEligibility(score, tag)
+      for (const track of tracks) {
+        const isEligible = await checkEligibility(score, track)
         if (isEligible) {
-          eligibleTracksToSave.push(tag)
+          eligibleTracksToSave.push(track)
         }
       }
 
@@ -209,23 +217,23 @@ export default function ArgentineanExperienceScreen() {
       console.log("[v0] Auto-saving entry to Redis:", entry)
 
       // Save only to eligible tracks
-      for (const tag of eligibleTracksToSave) {
-        console.log("[v0] Saving to track:", tag)
+      for (const track of eligibleTracksToSave) {
+        console.log("[v0] Saving to track:", track)
 
         const response = await fetch("/api/leaderboard", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ track: tag, entry }),
+          body: JSON.stringify({ track, entry }),
         })
 
-        console.log("[v0] Response status for", tag, ":", response.status)
+        console.log("[v0] Response status for", track, ":", response.status)
 
         if (!response.ok) {
           const errorText = await response.text()
-          console.error("[v0] Failed to save to track:", tag, errorText)
+          console.error("[v0] Failed to save to track:", track, errorText)
         } else {
           const result = await response.json()
-          console.log("[v0] Successfully saved to track:", tag, result)
+          console.log("[v0] Successfully saved to track:", track, result)
         }
       }
 
@@ -235,7 +243,40 @@ export default function ArgentineanExperienceScreen() {
     }
   }
 
-  const checkEligibility = async (score: number, track: string): Promise<boolean> => {
+  // Normalize and validate track against TRACKS
+  const normalizeTrack = (input: string): Track | null => {
+    const normalized = input.trim()
+    // Try exact match first (case-sensitive)
+    const exactMatch = TRACKS.find((t) => t === normalized)
+    if (exactMatch) return exactMatch
+
+    // Try case-insensitive match
+    const caseInsensitiveMatch = TRACKS.find((t) => t.toLowerCase() === normalized.toLowerCase())
+    if (caseInsensitiveMatch) return caseInsensitiveMatch
+
+    // Try matching with underscores/spaces normalization
+    const normalizedInput = normalized.toLowerCase().replace(/\s+/g, "_")
+    const normalizedMatch = TRACKS.find((t) =>
+      t.toLowerCase().replace(/\s+/g, "_") === normalizedInput
+    )
+    if (normalizedMatch) return normalizedMatch
+
+    return null
+  }
+
+  // Validate and normalize tracks array
+  const validateAndNormalizeTracks = (tags: string[]): Track[] => {
+    const validTracks: Track[] = []
+    for (const tag of tags) {
+      const normalizedTrack = normalizeTrack(tag)
+      if (normalizedTrack && !validTracks.includes(normalizedTrack)) {
+        validTracks.push(normalizedTrack)
+      }
+    }
+    return validTracks
+  }
+
+  const checkEligibility = async (score: number, track: Track): Promise<boolean> => {
     try {
       const response = await fetch(`/api/leaderboard/check-eligibility?score=${score}&track=${track}`)
       if (!response.ok) return false
@@ -379,18 +420,17 @@ export default function ArgentineanExperienceScreen() {
 
                   <div>
                     <label htmlFor="tags" className="mb-2 block text-sm font-medium text-foreground">
-                      Tags (optional, comma-separated)
+                      Tracks (optional, comma-separated)
                     </label>
                     <Input
                       id="tags"
                       type="text"
                       value={tagsInput}
                       onChange={(e) => setTagsInput(e.target.value)}
-                      placeholder="E.g.: sports, food, touristic"
+                      placeholder="E.g.: Sports, food, Touristic locations"
                     />
                     <p className="mt-1 text-xs text-muted-foreground">
-                      Suggested tags: food, sports, customs, touristic, famous_people, cultural_shocks,
-                      devconnect_crypto
+                      Suggested tracks: {TRACKS.join(", ")}
                     </p>
                   </div>
 
@@ -478,7 +518,7 @@ export default function ArgentineanExperienceScreen() {
                       <p className="mb-1 text-xs text-muted-foreground">Evaluated description:</p>
                       <p className="text-sm text-foreground">{lastDescription}</p>
                       {lastTags.length > 0 && (
-                        <p className="mt-1 text-xs text-muted-foreground">Tags: {lastTags.join(", ")}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">Tracks: {lastTags.join(", ")}</p>
                       )}
                     </div>
                   )}
@@ -749,7 +789,7 @@ export default function ArgentineanExperienceScreen() {
                 <div className="space-y-2">
                   <Button
                     onClick={() =>
-                      loadExample("Tomando mate con amigos en la costanera después del partido.", ["sports", "food"])
+                      loadExample("Having mate with friends at the waterfront after the game.", ["Sports", "food"])
                     }
                     variant="outline"
                     className="w-full justify-start text-left"
@@ -762,8 +802,8 @@ export default function ArgentineanExperienceScreen() {
                   <Button
                     onClick={() =>
                       loadExample(
-                        "Joven con camiseta de Boca Juniors en una tribuna de La Bombonera durante un partido de fútbol.",
-                        ["sports", "touristic"],
+                        "Young person with Boca Juniors jersey at La Bombonera during a soccer match.",
+                        ["Sports", "Touristic locations"],
                       )
                     }
                     variant="outline"
@@ -776,7 +816,7 @@ export default function ArgentineanExperienceScreen() {
                   </Button>
                   <Button
                     onClick={() =>
-                      loadExample("Comiendo asado con familia en un domingo de verano.", ["food", "customs"])
+                      loadExample("Eating asado with family on a summer Sunday.", ["food", "traditions"])
                     }
                     variant="outline"
                     className="w-full justify-start text-left"
@@ -787,7 +827,7 @@ export default function ArgentineanExperienceScreen() {
                     </span>
                   </Button>
                   <Button
-                    onClick={() => loadExample("Tomando café en un coworking de Berlín.", ["work"])}
+                    onClick={() => loadExample("Having coffee at a coworking space in Berlin.", [])}
                     variant="outline"
                     className="w-full justify-start text-left"
                   >
