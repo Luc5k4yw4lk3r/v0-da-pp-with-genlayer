@@ -58,6 +58,9 @@ export default function ArgentineanExperienceScreen() {
 
   const [componentError, setComponentError] = useState<string | null>(null)
 
+  const [showConsensusPanel, setShowConsensusPanel] = useState(false)
+  const [completedConsensus, setCompletedConsensus] = useState<ConsensusProgress | null>(null)
+
   const { evaluate, loading: evaluating, error: hookError, consensusProgress } = useProofOfArgentineanExperience()
 
   const t = useTranslations()
@@ -130,6 +133,8 @@ export default function ArgentineanExperienceScreen() {
     setIsEligibleForLeaderboard(false)
     setEligibleTracks([])
     setComponentError(null)
+    setShowConsensusPanel(true)
+    setCompletedConsensus(null)
 
     try {
       const tags = tagsInput
@@ -148,6 +153,10 @@ export default function ArgentineanExperienceScreen() {
       setResult(evaluationResult)
       setLastDescription(description)
       setLastTags(tags || [])
+
+      if (consensusProgress?.completed) {
+        setCompletedConsensus(consensusProgress)
+      }
 
       if (tags && tags.length > 0) {
         console.log("[v0] Auto-saving to Redis...")
@@ -436,12 +445,11 @@ export default function ArgentineanExperienceScreen() {
               </CardContent>
             </Card>
 
-            {/* Consensus Process Visualization */}
-            {(consensusProgress || (result && consensusProgress)) && (
+            {showConsensusPanel && (
               <Card className="border-2 border-info">
                 <CardHeader>
                   <CardTitle className="flex items-center">
-                    {!consensusProgress?.completed ? (
+                    {!(completedConsensus?.completed || consensusProgress?.completed) ? (
                       <Loader2 className="mr-2 h-5 w-5 animate-spin text-info" />
                     ) : (
                       <span className="mr-2 text-2xl">✓</span>
@@ -449,96 +457,103 @@ export default function ArgentineanExperienceScreen() {
                     Proceso de Consenso GenLayer
                   </CardTitle>
                   <CardDescription>
-                    {!consensusProgress?.completed
+                    {!(completedConsensus?.completed || consensusProgress?.completed)
                       ? "El sistema está ejecutando múltiples evaluaciones hasta alcanzar consenso"
                       : "Consenso alcanzado exitosamente"}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="mb-4">
-                    <div className="mb-2 flex items-center justify-between">
-                      <span className="text-sm font-medium text-foreground">{consensusProgress?.message}</span>
-                      <span
-                        className={`text-sm font-medium ${consensusProgress?.completed ? "text-success" : "text-info"}`}
-                      >
-                        {consensusProgress?.progress}%
-                      </span>
-                    </div>
-                    <div className="h-3 w-full rounded-full bg-muted">
-                      <div
-                        className={`h-3 rounded-full transition-all duration-700 ease-out ${
-                          consensusProgress?.completed ? "bg-success" : "bg-info"
-                        }`}
-                        style={{ width: `${consensusProgress?.progress}%` }}
-                      />
-                    </div>
-                    <div className="mt-2 text-xs text-muted-foreground">
-                      Paso {consensusProgress?.step} de {consensusProgress?.totalSteps}
-                    </div>
-                  </div>
-
-                  <div className="mt-4 space-y-2">
-                    {[
-                      "Iniciando evaluación...",
-                      "Conectando con nodos validadores...",
-                      "Ejecutando primera evaluación con LLM...",
-                      "Esperando respuesta del primer nodo...",
-                      "Ejecutando segunda evaluación para consenso...",
-                      "Esperando respuesta del segundo nodo...",
-                      "Comparando resultados entre nodos...",
-                      "Ejecutando tercera evaluación (si es necesario)...",
-                      "Validando consenso entre nodos...",
-                      "Finalizando proceso de consenso...",
-                      "Consenso alcanzado ✓",
-                    ].map((stepName, index) => {
-                      const stepNumber = index + 1
-                      const isCompleted = stepNumber < (consensusProgress?.step || 0)
-                      const isCurrent = stepNumber === consensusProgress?.step && !consensusProgress?.completed
-                      const isConsensusComplete = consensusProgress?.completed && stepNumber === consensusProgress?.step
-
-                      return (
-                        <div
-                          key={stepNumber}
-                          className={`flex items-center rounded-lg p-3 transition-all duration-500 ${
-                            isCompleted
-                              ? "border border-success bg-success/10"
-                              : isCurrent
-                                ? "border-2 border-info bg-info/10 shadow-md"
-                                : isConsensusComplete
-                                  ? "border-2 border-success bg-success/20 shadow-lg"
-                                  : "border border-border bg-muted/30"
-                          }`}
-                        >
-                          <div
-                            className={`mr-3 flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold transition-all duration-500 ${
-                              isCompleted
-                                ? "bg-success text-white"
-                                : isCurrent
-                                  ? "animate-pulse bg-info text-white shadow-lg"
-                                  : isConsensusComplete
-                                    ? "bg-success text-white shadow-lg scale-110"
-                                    : "bg-muted text-muted-foreground"
-                            }`}
-                          >
-                            {isCompleted || isConsensusComplete ? "✓" : stepNumber}
+                  {(() => {
+                    const currentProgress = completedConsensus || consensusProgress
+                    return (
+                      <>
+                        <div className="mb-4">
+                          <div className="mb-2 flex items-center justify-between">
+                            <span className="text-sm font-medium text-foreground">{currentProgress?.message}</span>
+                            <span
+                              className={`text-sm font-medium ${currentProgress?.completed ? "text-success" : "text-info"}`}
+                            >
+                              {currentProgress?.progress}%
+                            </span>
                           </div>
-                          <span
-                            className={`text-sm transition-all duration-500 ${
-                              isCompleted
-                                ? "font-medium text-success"
-                                : isCurrent
-                                  ? "font-semibold text-info"
-                                  : isConsensusComplete
-                                    ? "font-bold text-success"
-                                    : "text-muted-foreground"
-                            }`}
-                          >
-                            {stepName}
-                          </span>
+                          <div className="h-3 w-full rounded-full bg-muted">
+                            <div
+                              className={`h-3 rounded-full transition-all duration-700 ease-out ${
+                                currentProgress?.completed ? "bg-success" : "bg-info"
+                              }`}
+                              style={{ width: `${currentProgress?.progress}%` }}
+                            />
+                          </div>
+                          <div className="mt-2 text-xs text-muted-foreground">
+                            Paso {currentProgress?.step} de {currentProgress?.totalSteps}
+                          </div>
                         </div>
-                      )
-                    })}
-                  </div>
+
+                        <div className="mt-4 space-y-2">
+                          {[
+                            "Iniciando evaluación...",
+                            "Conectando con nodos validadores...",
+                            "Ejecutando primera evaluación con LLM...",
+                            "Esperando respuesta del primer nodo...",
+                            "Ejecutando segunda evaluación para consenso...",
+                            "Esperando respuesta del segundo nodo...",
+                            "Comparando resultados entre nodos...",
+                            "Ejecutando tercera evaluación (si es necesario)...",
+                            "Validando consenso entre nodos...",
+                            "Finalizando proceso de consenso...",
+                            "Consenso alcanzado ✓",
+                          ].map((stepName, index) => {
+                            const stepNumber = index + 1
+                            const isCompleted = stepNumber < (currentProgress?.step || 0)
+                            const isCurrent = stepNumber === currentProgress?.step && !currentProgress?.completed
+                            const isConsensusComplete = currentProgress?.completed && stepNumber === currentProgress?.step
+
+                            return (
+                              <div
+                                key={stepNumber}
+                                className={`flex items-center rounded-lg p-3 transition-all duration-500 ${
+                                  isCompleted
+                                    ? "border border-success bg-success/10"
+                                    : isCurrent
+                                      ? "border-2 border-info bg-info/10 shadow-md"
+                                      : isConsensusComplete
+                                        ? "border-2 border-success bg-success/20 shadow-lg"
+                                        : "border border-border bg-muted/30"
+                                }`}
+                              >
+                                <div
+                                  className={`mr-3 flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold transition-all duration-500 ${
+                                    isCompleted
+                                      ? "bg-success text-white"
+                                      : isCurrent
+                                        ? "animate-pulse bg-info text-white shadow-lg"
+                                        : isConsensusComplete
+                                          ? "bg-success text-white shadow-lg scale-110"
+                                          : "bg-muted text-muted-foreground"
+                                  }`}
+                                >
+                                  {isCompleted || isConsensusComplete ? "✓" : stepNumber}
+                                </div>
+                                <span
+                                  className={`text-sm transition-all duration-500 ${
+                                    isCompleted
+                                      ? "font-medium text-success"
+                                      : isCurrent
+                                        ? "font-semibold text-info"
+                                        : isConsensusComplete
+                                          ? "font-bold text-success"
+                                          : "text-muted-foreground"
+                                  }`}
+                                >
+                                  {stepName}
+                                </span>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </>
+                    )
+                  })()}
                 </CardContent>
               </Card>
             )}
