@@ -72,7 +72,7 @@ This project leverages GenLayer's unique capabilities for subjective evaluation 
 
 ### Installation
 
-```bash
+\`\`\`bash
 # Install dependencies
 pnpm install
 
@@ -82,11 +82,11 @@ cp .env.example .env
 
 # Run development server
 pnpm dev
-```
+\`\`\`
 
 ## Project Structure
 
-```
+\`\`\`
 ├── app/                    # Next.js app directory
 │   ├── api/               # API routes
 │   │   ├── analyze-image/ # Image analysis endpoint
@@ -101,7 +101,7 @@ pnpm dev
 └── lib/                   # Utilities and contract bindings
     └── contracts/
         └── proof-of-argentinean-experience.ts
-```
+\`\`\`
 
 ## How It Works
 
