@@ -409,13 +409,13 @@ export default function ArgentineanExperienceScreen() {
         </div>
       </div>
 
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="grid gap-6 lg:grid-cols-2">
+      <main className="mx-auto max-w-7xl px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8">
+        <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
           <div className="space-y-6">
             <Card className="border-primary/20 shadow-xl">
               <CardHeader>
-                <CardTitle className="text-xl">Evaluate your Argentine experience</CardTitle>
-                <CardDescription>
+                <CardTitle className="text-lg sm:text-xl">Evaluate your Argentine experience</CardTitle>
+                <CardDescription className="text-xs sm:text-sm">
                   Upload an image or describe an experience and get a score of how Argentine it is (0-100)
                 </CardDescription>
               </CardHeader>
@@ -517,8 +517,9 @@ export default function ArgentineanExperienceScreen() {
                       placeholder="E.g.: Sports, food, Touristic locations"
                       readOnly
                     />
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      Suggested tracks: {TRACKS.join(", ")}
+                    <p className="mt-1 text-xs text-muted-foreground break-words">
+                      Suggested tracks: <span className="hidden sm:inline">{TRACKS.join(", ")}</span>
+                      <span className="sm:hidden">{TRACKS.slice(0, 3).join(", ")}...</span>
                     </p>
                   </div>
 
@@ -552,15 +553,19 @@ export default function ArgentineanExperienceScreen() {
                   <Button
                     type="submit"
                     disabled={!description || evaluating || savingToLeaderboard}
-                    className="w-full bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 hover:from-blue-700 hover:via-purple-700 hover:to-pink-700 text-white font-bold text-lg py-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+                    className="w-full bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 hover:from-blue-700 hover:via-purple-700 hover:to-pink-700 text-white font-bold text-sm sm:text-base lg:text-lg py-4 sm:py-5 lg:py-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
                   >
                     {evaluating || savingToLeaderboard ? (
                       <>
-                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                        {evaluating ? "Evaluating with AI Consensus..." : "Saving..."}
+                        <Loader2 className="mr-2 h-4 w-4 sm:h-5 sm:w-5 animate-spin" />
+                        <span className="hidden sm:inline">{evaluating ? "Evaluating with AI Consensus..." : "Saving..."}</span>
+                        <span className="sm:hidden">{evaluating ? "Evaluating..." : "Saving..."}</span>
                       </>
                     ) : (
-                      "Evaluate Experience with AI Consensus"
+                      <>
+                        <span className="hidden sm:inline">Evaluate Experience with AI Consensus</span>
+                        <span className="sm:hidden">Evaluate Experience</span>
+                      </>
                     )}
                   </Button>
 
@@ -633,8 +638,8 @@ export default function ArgentineanExperienceScreen() {
             {result && (transactionDetails || loadingTransactionDetails) && (
               <Card className="border-accent/30 shadow-xl bg-gradient-to-br from-card via-card to-accent/5">
                 <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle>Transaction Method Call</CardTitle>
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                    <CardTitle className="text-base sm:text-lg">Transaction Method Call</CardTitle>
                     {transactionDetails?.timestamp && (
                       <span className="text-xs text-muted-foreground">
                         {new Date(transactionDetails.timestamp).toLocaleString()}
@@ -657,13 +662,13 @@ export default function ArgentineanExperienceScreen() {
                             Transaction ID
                           </label>
                           <div className="flex items-center gap-2">
-                            <code className="flex-1 rounded-md bg-muted px-2 py-1.5 text-xs font-mono">
+                            <code className="flex-1 rounded-md bg-muted px-2 py-1.5 text-[10px] sm:text-xs font-mono break-all">
                               {transactionDetails.transactionHash}
                             </code>
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8"
+                              className="h-8 w-8 flex-shrink-0"
                               onClick={async () => {
                                 await navigator.clipboard.writeText(transactionDetails.transactionHash)
                                 setCopiedHash(true)
@@ -819,7 +824,7 @@ export default function ArgentineanExperienceScreen() {
                                     <div className="h-5 w-5 rounded-full bg-muted flex items-center justify-center">
                                       <span className="text-xs">👤</span>
                                     </div>
-                                    <code className="text-xs font-mono text-muted-foreground">
+                                    <code className="text-[10px] sm:text-xs font-mono text-muted-foreground break-all">
                                       {validator.address}
                                     </code>
                                   </div>
