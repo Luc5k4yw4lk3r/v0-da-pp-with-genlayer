@@ -31,6 +31,20 @@ export type Track = (typeof TRACKS)[number]
 
 const MAX_ENTRIES_PER_TRACK = 5
 
+function serializeError(error: unknown): string {
+  if (error instanceof Error) {
+    return `${error.name}: ${error.message}\nStack: ${error.stack || 'No stack trace'}`
+  }
+  if (typeof error === 'object' && error !== null) {
+    try {
+      return JSON.stringify(error, null, 2)
+    } catch {
+      return String(error)
+    }
+  }
+  return String(error)
+}
+
 function getRedisClient() {
   const url = process.env.UPSTASH_KV_REST_API_URL?.replace(/^["']|["']$/g, "").trim()
   const token = process.env.UPSTASH_KV_REST_API_TOKEN?.replace(/^["']|["']$/g, "").trim()
@@ -60,19 +74,16 @@ export async function addToLeaderboard(
 
     console.log("[v0] Adding to leaderboard:", { track, key, score: entry.score })
 
-    // Add to sorted set with score as the sort value
     await redis.zadd(key, {
       score: entry.score,
       member: JSON.stringify(entry),
     })
 
-    // Keep only top 5
     const count = await redis.zcard(key)
     if (count > MAX_ENTRIES_PER_TRACK) {
       await redis.zremrangebyrank(key, 0, count - MAX_ENTRIES_PER_TRACK - 1)
     }
 
-    // Get rank
     const rank = await redis.zrevrank(key, JSON.stringify(entry))
 
     console.log("[v0] Added successfully:", { rank, count })
@@ -82,7 +93,7 @@ export async function addToLeaderboard(
       rank: rank !== null ? rank + 1 : undefined,
     }
   } catch (error) {
-    console.error("[v0] Error in addToLeaderboard:", error)
+    console.error("[v0] Error in addToLeaderboard:", serializeError(error))
     throw error
   }
 }
@@ -102,9 +113,8 @@ export async function getLeaderboard(track: Track): Promise<LeaderboardEntry[]> 
     } catch (redisError) {
       console.error("[v0] Redis operation error:", {
         track,
-        message: redisError instanceof Error ? redisError.message : JSON.stringify(redisError),
-        type: typeof redisError,
-        keys: redisError && typeof redisError === 'object' ? Object.keys(redisError) : 'not an object'
+        key,
+        error: serializeError(redisError)
       })
       return []
     }
@@ -125,24 +135,16 @@ export async function getLeaderboard(track: Track): Promise<LeaderboardEntry[]> 
         } catch (parseError) {
           console.error("[v0] Error parsing entry:", {
             entry: typeof entry === 'object' ? JSON.stringify(entry) : entry,
-            error: parseError instanceof Error ? parseError.message : String(parseError)
+            error: serializeError(parseError)
           })
           return null
         }
       })
       .filter((entry): entry is LeaderboardEntry => entry !== null)
   } catch (error) {
-    const errorMessage = error instanceof Error 
-      ? error.message 
-      : typeof error === 'object' && error !== null
-      ? JSON.stringify(error)
-      : String(error)
-    
     console.error("[v0] Error in getLeaderboard:", {
       track,
-      message: errorMessage,
-      stack: error instanceof Error ? error.stack : undefined,
-      errorType: error?.constructor?.name || typeof error
+      error: serializeError(error)
     })
     return []
   }
@@ -159,7 +161,7 @@ export async function getAllLeaderboards(): Promise<Record<Track, LeaderboardEnt
         const entries = await getLeaderboard(track)
         return { track, entries, success: true }
       } catch (error) {
-        console.error(`[v0] Error getting leaderboard for ${track}:`, error)
+        console.error(`[v0] Error getting leaderboard for ${track}:`, serializeError(error))
         return { track, entries: [], success: false }
       }
     })
@@ -177,7 +179,7 @@ export async function getAllLeaderboards(): Promise<Record<Track, LeaderboardEnt
 
     return result as Record<Track, LeaderboardEntry[]>
   } catch (error) {
-    console.error("[v0] Error in getAllLeaderboards:", error)
+    console.error("[v0] Error in getAllLeaderboards:", serializeError(error))
     const emptyResult: Record<string, LeaderboardEntry[]> = {}
     TRACKS.forEach((track) => {
       emptyResult[track] = []
@@ -191,28 +193,23 @@ export async function isEligibleForTrack(track: Track, score: number): Promise<b
     const redis = getRedisClient()
     const key = `leaderboard:${track.toLowerCase().replace(/\s+/g, "_")}`
 
-    // Get current entries count
     const count = await redis.zcard(key)
 
-    // If less than 5 entries, always eligible
     if (count < MAX_ENTRIES_PER_TRACK) {
       return true
     }
 
-    // Get the lowest score in Top 5
     const lowestEntry = await redis.zrange(key, 0, 0)
     if (!lowestEntry || lowestEntry.length === 0) {
       return true
     }
 
-    // Parse the entry to get its score
     const entry = typeof lowestEntry[0] === "object" ? lowestEntry[0] : JSON.parse(lowestEntry[0] as string)
     const lowestScore = (entry as LeaderboardEntry).score
 
-    // Eligible if new score is higher
     return score > lowestScore
   } catch (error) {
-    console.error("[v0] Error checking eligibility:", error)
+    console.error("[v0] Error checking eligibility:", serializeError(error))
     return false
   }
 }
