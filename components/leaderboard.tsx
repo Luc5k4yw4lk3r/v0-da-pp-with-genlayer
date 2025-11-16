@@ -3,13 +3,14 @@
 import { useEffect, useState, useRef } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Trophy, Medal, Award, User } from "lucide-react"
+import { Trophy, Medal, Award, User } from 'lucide-react'
 import type { LeaderboardEntry } from "@/lib/redis"
 import { TRACKS } from "@/lib/redis"
 
 export default function Leaderboard({ refreshTrigger }: { refreshTrigger?: number }) {
   const [leaderboards, setLeaderboards] = useState<Record<string, LeaderboardEntry[]>>({})
   const [loading, setLoading] = useState(true)
+  const [defaultTab] = useState(() => TRACKS[Math.floor(Math.random() * TRACKS.length)])
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
@@ -87,13 +88,13 @@ export default function Leaderboard({ refreshTrigger }: { refreshTrigger?: numbe
         <CardDescription>Top scores by category</CardDescription>
       </CardHeader>
       <CardContent>
-        <Tabs defaultValue={TRACKS[0]} className="w-full">
+        <Tabs defaultValue={defaultTab} className="w-full">
           <TabsList className="inline-flex h-auto w-full flex-wrap gap-2 bg-transparent p-0">
             {TRACKS.map((track) => (
               <TabsTrigger
                 key={track}
                 value={track}
-                className="rounded-full border border-border bg-background px-4 py-2 text-sm font-medium transition-all hover:bg-accent data-[state=active]:border-primary data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                className="rounded-full border border-border bg-background px-4 py-2 text-sm font-medium transition-all hover:bg-accent data-[state=active]:border-primary data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-primary/50 data-[state=active]:scale-105"
               >
                 {track}
               </TabsTrigger>
