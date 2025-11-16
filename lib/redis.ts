@@ -107,6 +107,12 @@ export async function getLeaderboard(track: Track): Promise<LeaderboardEntry[]> 
 
     let entries
     try {
+      const exists = await redis.exists(key)
+      if (!exists) {
+        console.log("[v0] Key does not exist yet, returning empty array:", key)
+        return []
+      }
+
       entries = await redis.zrange(key, 0, MAX_ENTRIES_PER_TRACK - 1, {
         rev: true,
       })
@@ -192,6 +198,11 @@ export async function isEligibleForTrack(track: Track, score: number): Promise<b
   try {
     const redis = getRedisClient()
     const key = `leaderboard:${track.toLowerCase().replace(/\s+/g, "_")}`
+
+    const exists = await redis.exists(key)
+    if (!exists) {
+      return true // Empty leaderboard, always eligible
+    }
 
     const count = await redis.zcard(key)
 
