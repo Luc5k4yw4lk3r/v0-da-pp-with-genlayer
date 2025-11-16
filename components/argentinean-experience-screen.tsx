@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useRef } from "react"
+import React, { useState, useRef, useEffect } from "react"
 import ProofOfArgentineanExperience, {
   type EvaluationResult,
   type TransactionDetails,
@@ -53,6 +53,13 @@ export default function ArgentineanExperienceScreen() {
   const [showFullTransactionData, setShowFullTransactionData] = useState(false)
 
   const [leaderboardRefreshTrigger, setLeaderboardRefreshTrigger] = useState(0)
+
+  const [selectedTrack, setSelectedTrack] = useState<Track | null>(null)
+
+  useEffect(() => {
+    const randomIndex = Math.floor(Math.random() * TRACKS.length)
+    setSelectedTrack(TRACKS[randomIndex])
+  }, [])
 
   const proofOfExperience = new ProofOfArgentineanExperience(contractAddress)
 
@@ -512,8 +519,30 @@ export default function ArgentineanExperienceScreen() {
                       placeholder="E.g.: Sports, food, Touristic locations"
                       readOnly
                     />
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {TRACKS.map((track) => {
+                        const isActive = track === selectedTrack
+                        return (
+                          <button
+                            key={track}
+                            type="button"
+                            onClick={() => {
+                              setSelectedTrack(track)
+                              setTagsInput(track)
+                            }}
+                            className={`rounded-full px-3 py-1 text-xs font-medium transition-all duration-200 ${
+                              isActive
+                                ? "bg-primary text-primary-foreground shadow-md ring-2 ring-primary/50 ring-offset-2"
+                                : "bg-muted text-muted-foreground hover:bg-muted/80"
+                            }`}
+                          >
+                            {track}
+                          </button>
+                        )
+                      })}
+                    </div>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      Suggested tracks: {TRACKS.join(", ")}
+                      Click a track to select it
                     </p>
                   </div>
 
@@ -678,7 +707,7 @@ export default function ArgentineanExperienceScreen() {
                       {/* Status and Execution */}
                       <div className="grid gap-3 sm:grid-cols-2">
                         <div>
-                          <label className="mb-1 block text-xs font-medium text-muted-foreground">Status</label>
+                          <label className="mb-1 block text-sm font-medium text-muted-foreground">Status</label>
                           <div
                             className={`inline-flex items-center rounded-full px-3 py-1.5 text-xs font-medium ${transactionDetails.status === "FINALIZED"
                               ? "bg-destructive/10 text-destructive"
@@ -689,7 +718,7 @@ export default function ArgentineanExperienceScreen() {
                           </div>
                         </div>
                         <div>
-                          <label className="mb-1 block text-xs font-medium text-muted-foreground">Execution</label>
+                          <label className="mb-1 block text-sm font-medium text-muted-foreground">Execution</label>
                           <div
                             className={`inline-flex items-center rounded-full px-3 py-1.5 text-xs font-medium ${transactionDetails.execution === "SUCCESS"
                               ? "bg-success/10 text-success"
