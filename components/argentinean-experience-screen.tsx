@@ -377,20 +377,24 @@ export default function ArgentineanExperienceScreen() {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b border-border bg-card">
-        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-          <h1 className="text-4xl font-bold text-foreground">Proof of Argentinean Experience</h1>
-          <p className="mt-2 text-muted-foreground">
+      <header className="border-b border-border/50 bg-card/80 backdrop-blur-lg sticky top-0 z-50 shadow-sm">
+        <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold heading-pixel">
+            Proof of Argentinean Experience
+          </h1>
+          <p className="mt-2 text-sm sm:text-base text-muted-foreground">
             Evaluate how Argentine your experience is using artificial intelligence
           </p>
         </div>
       </header>
 
-      <div className="border-b border-border bg-muted/30">
+      <div className="border-b border-border/50 bg-gradient-to-br from-primary/5 via-secondary/5 to-accent/5">
         <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-          <Card>
+          <Card className="border-primary/20 bg-card/90 backdrop-blur-sm shadow-lg">
             <CardContent className="pt-6">
-              <h2 className="text-lg font-semibold mb-3 text-foreground">About This Project</h2>
+              <h2 className="text-lg font-bold mb-3 text-foreground bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+                About This Project
+              </h2>
               <p className="text-sm text-muted-foreground mb-3">
                 <strong>Proof of Argentinean Experience</strong> is a decentralized application that allows users to upload photos of Argentinean cultural experiences (asado, mate, La Bombonera stadium, etc.), generate text descriptions, and use GenLayer's decentralized AI consensus to evaluate how "Argentinean" the content appears (scoring 0-100).
               </p>
@@ -408,10 +412,9 @@ export default function ArgentineanExperienceScreen() {
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="grid gap-6 lg:grid-cols-2">
           <div className="space-y-6">
-            {/* Evaluation Form */}
-            <Card>
+            <Card className="border-primary/20 shadow-xl">
               <CardHeader>
-                <CardTitle>Evaluate your Argentine experience</CardTitle>
+                <CardTitle className="text-xl">Evaluate your Argentine experience</CardTitle>
                 <CardDescription>
                   Upload an image or describe an experience and get a score of how Argentine it is (0-100)
                 </CardDescription>
@@ -573,7 +576,7 @@ export default function ArgentineanExperienceScreen() {
 
             {/* Result Display */}
             {result && (
-              <Card>
+              <Card className="border-secondary/30 shadow-xl bg-gradient-to-br from-card via-card to-secondary/5">
                 <CardHeader>
                   <CardTitle>Result</CardTitle>
                 </CardHeader>
@@ -628,7 +631,7 @@ export default function ArgentineanExperienceScreen() {
 
             {/* Transaction Details and Consensus */}
             {result && (transactionDetails || loadingTransactionDetails) && (
-              <Card>
+              <Card className="border-accent/30 shadow-xl bg-gradient-to-br from-card via-card to-accent/5">
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <CardTitle>Transaction Method Call</CardTitle>
@@ -875,7 +878,7 @@ export default function ArgentineanExperienceScreen() {
         </div>
       </main>
 
-      <footer className="border-t border-border bg-card mt-12">
+      <footer className="border-t border-border/50 bg-gradient-to-r from-primary/5 via-secondary/5 to-accent/5 mt-12">
         <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 text-sm text-muted-foreground">
             <span className="flex items-center gap-1">
@@ -884,7 +887,7 @@ export default function ArgentineanExperienceScreen() {
                 href="https://www.genlayer.com/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-primary hover:underline font-medium"
+                className="text-primary hover:text-secondary font-medium transition-colors"
               >
                 GenLayer
               </a>
@@ -896,7 +899,7 @@ export default function ArgentineanExperienceScreen() {
                 href="https://v0.app"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-primary hover:underline font-medium"
+                className="text-secondary hover:text-accent font-medium transition-colors"
               >
                 v0
               </a>
@@ -908,7 +911,7 @@ export default function ArgentineanExperienceScreen() {
                 href="https://proofoftravel.xyz"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-primary hover:underline font-medium"
+                className="text-accent hover:text-primary font-medium transition-colors"
               >
                 ProofOfTravel.xyz
               </a>
