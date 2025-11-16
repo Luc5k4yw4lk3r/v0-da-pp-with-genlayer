@@ -94,10 +94,20 @@ export async function getLeaderboard(track: Track): Promise<LeaderboardEntry[]> 
 
     console.log("[v0] Getting leaderboard for:", { track, key })
 
-    // Get top 5 in descending order
-    const entries = await redis.zrange(key, 0, MAX_ENTRIES_PER_TRACK - 1, {
-      rev: true,
-    })
+    let entries
+    try {
+      entries = await redis.zrange(key, 0, MAX_ENTRIES_PER_TRACK - 1, {
+        rev: true,
+      })
+    } catch (redisError) {
+      console.error("[v0] Redis zrange error:", {
+        track,
+        key,
+        error: redisError instanceof Error ? redisError.message : String(redisError)
+      })
+      // Return empty array if Redis operation fails
+      return []
+    }
 
     console.log("[v0] Retrieved entries:", entries?.length || 0)
 
@@ -105,33 +115,32 @@ export async function getLeaderboard(track: Track): Promise<LeaderboardEntry[]> 
       return []
     }
 
-    return entries.map((entry) => {
-      try {
-        // If entry is already an object, return it
-        if (typeof entry === "object" && entry !== null) {
-          return entry as LeaderboardEntry
+    return entries
+      .map((entry) => {
+        try {
+          // If entry is already an object, return it
+          if (typeof entry === "object" && entry !== null) {
+            return entry as LeaderboardEntry
+          }
+          // Otherwise parse it as JSON string
+          return JSON.parse(entry as string) as LeaderboardEntry
+        } catch (parseError) {
+          console.error("[v0] Error parsing entry:", {
+            entry: typeof entry === 'object' ? JSON.stringify(entry) : entry,
+            error: parseError instanceof Error ? parseError.message : String(parseError)
+          })
+          // Return null for invalid entries
+          return null
         }
-        // Otherwise parse it as JSON string
-        return JSON.parse(entry as string) as LeaderboardEntry
-      } catch (parseError) {
-        console.error("[v0] Error parsing entry:", {
-          entry: typeof entry === 'object' ? JSON.stringify(entry) : entry,
-          error: parseError instanceof Error ? parseError.message : String(parseError)
-        })
-        return {
-          score: 0,
-          description: "Invalid entry",
-          imageUrl: undefined,
-          timestamp: Date.now(),
-          tags: [],
-        }
-      }
-    })
+      })
+      .filter((entry): entry is LeaderboardEntry => entry !== null) // Filter out null values
   } catch (error) {
     console.error("[v0] Error in getLeaderboard:", {
       track,
       message: error instanceof Error ? error.message : String(error),
-      stack: error instanceof Error ? error.stack : undefined
+      stack: error instanceof Error ? error.stack : undefined,
+      errorType: typeof error,
+      errorConstructor: error?.constructor?.name
     })
     return []
   }
