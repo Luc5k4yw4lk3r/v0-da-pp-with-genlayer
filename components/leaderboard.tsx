@@ -196,7 +196,7 @@ export default function Leaderboard({ refreshTrigger }: { refreshTrigger?: numbe
       </Card>
 
       <Dialog open={!!selectedEntry} onOpenChange={(open) => !open && setSelectedEntry(null)}>
-        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto !bg-white">
           {selectedEntry && (
             <>
               <DialogHeader>
