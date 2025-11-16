@@ -530,10 +530,10 @@ export default function ArgentineanExperienceScreen() {
                               setSelectedTrack(track)
                               setTagsInput(track)
                             }}
-                            className={`rounded-full px-3 py-1 text-xs font-medium transition-all duration-200 ${
+                            className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-all duration-200 ${
                               isActive
-                                ? "bg-primary text-primary-foreground shadow-md ring-2 ring-primary/50 ring-offset-2"
-                                : "bg-muted text-muted-foreground hover:bg-muted/80"
+                                ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg ring-2 ring-blue-400 ring-offset-2 scale-105"
+                                : "bg-muted text-muted-foreground hover:bg-muted/80 hover:scale-105"
                             }`}
                           >
                             {track}
