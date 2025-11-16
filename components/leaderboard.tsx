@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useRef } from "react"
+import { useEffect, useState, useRef, useMemo, useCallback } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Trophy, Medal, Award, User, Maximize2 } from 'lucide-react'
@@ -14,6 +14,16 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog"
 
+const TabTriggerMemo = ({ track }: { track: string }) => (
+  <TabsTrigger
+    key={track}
+    value={track}
+    className="rounded-full border border-border bg-background px-4 py-2 text-sm font-medium transition-all hover:bg-accent data-[state=active]:border-primary data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-primary/50 data-[state=active]:scale-105"
+  >
+    {track}
+  </TabsTrigger>
+)
+
 export default function Leaderboard({ refreshTrigger }: { refreshTrigger?: number }) {
   const [leaderboards, setLeaderboards] = useState<Record<string, LeaderboardEntry[]>>({})
   const [loading, setLoading] = useState(true)
@@ -21,6 +31,18 @@ export default function Leaderboard({ refreshTrigger }: { refreshTrigger?: numbe
   const [selectedEntry, setSelectedEntry] = useState<LeaderboardEntry | null>(null)
   const [selectedRank, setSelectedRank] = useState<number>(0)
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
+
+  const fetchLeaderboards = useCallback(async () => {
+    try {
+      const response = await fetch("/api/leaderboard")
+      const data = await response.json()
+      setLeaderboards(data)
+    } catch (error) {
+      console.error("[v0] Error fetching leaderboards:", error)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
 
   useEffect(() => {
     fetchLeaderboards()
@@ -35,28 +57,16 @@ export default function Leaderboard({ refreshTrigger }: { refreshTrigger?: numbe
         clearInterval(intervalRef.current)
       }
     }
-  }, [])
+  }, [fetchLeaderboards])
 
   // Refrescar cuando cambie el trigger externo
   useEffect(() => {
     if (refreshTrigger !== undefined) {
       fetchLeaderboards()
     }
-  }, [refreshTrigger])
+  }, [refreshTrigger, fetchLeaderboards])
 
-  const fetchLeaderboards = async () => {
-    try {
-      const response = await fetch("/api/leaderboard")
-      const data = await response.json()
-      setLeaderboards(data)
-    } catch (error) {
-      console.error("[v0] Error fetching leaderboards:", error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const getRankIcon = (rank: number) => {
+  const getRankIcon = useCallback((rank: number) => {
     switch (rank) {
       case 0:
         return <Trophy className="h-6 w-6 text-yellow-500" />
@@ -67,14 +77,19 @@ export default function Leaderboard({ refreshTrigger }: { refreshTrigger?: numbe
       default:
         return <span className="text-lg font-bold text-muted-foreground">#{rank + 1}</span>
     }
-  }
+  }, [])
 
-  const getScoreColor = (score: number): string => {
+  const getScoreColor = useCallback((score: number): string => {
     if (score >= 81) return "text-success"
     if (score >= 51) return "text-info"
     if (score >= 21) return "text-warning"
     return "text-destructive"
-  }
+  }, [])
+
+  const handleEntryClick = useCallback((entry: LeaderboardEntry, index: number) => {
+    setSelectedEntry(entry)
+    setSelectedRank(index)
+  }, [])
 
   if (loading) {
     return (
@@ -101,13 +116,7 @@ export default function Leaderboard({ refreshTrigger }: { refreshTrigger?: numbe
           <Tabs defaultValue={defaultTab} className="w-full">
             <TabsList className="inline-flex h-auto w-full flex-wrap gap-2 bg-transparent p-0">
               {TRACKS.map((track) => (
-                <TabsTrigger
-                  key={track}
-                  value={track}
-                  className="rounded-full border border-border bg-background px-4 py-2 text-sm font-medium transition-all hover:bg-accent data-[state=active]:border-primary data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-primary/50 data-[state=active]:scale-105"
-                >
-                  {track}
-                </TabsTrigger>
+                <TabTriggerMemo key={track} track={track} />
               ))}
             </TabsList>
 
@@ -117,12 +126,9 @@ export default function Leaderboard({ refreshTrigger }: { refreshTrigger?: numbe
                   <div className="space-y-3">
                     {leaderboards[track].map((entry, index) => (
                       <div
-                        key={index}
+                        key={`${entry.timestamp}-${index}`}
                         className="flex items-start gap-4 rounded-lg border border-border bg-card p-4 transition-all hover:border-primary/50 cursor-pointer group relative"
-                        onClick={() => {
-                          setSelectedEntry(entry)
-                          setSelectedRank(index)
-                        }}
+                        onClick={() => handleEntryClick(entry, index)}
                       >
                         <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
                           <Maximize2 className="h-4 w-4 text-muted-foreground" />
