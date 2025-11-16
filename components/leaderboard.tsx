@@ -157,7 +157,6 @@ export default function Leaderboard({ refreshTrigger }: { refreshTrigger?: numbe
                               <p className="text-sm text-muted-foreground italic">Anonymous</p>
                             )}
                           </div>
-                          <p className="text-sm text-foreground line-clamp-2">{entry.description}</p>
                           {entry.message && (
                             <div className="mt-2 rounded-md bg-primary/5 border-l-2 border-primary pl-3 py-1.5">
                               <p className="text-xs font-medium text-primary/80 mb-0.5">AI Consensus:</p>
@@ -197,13 +196,13 @@ export default function Leaderboard({ refreshTrigger }: { refreshTrigger?: numbe
       </Card>
 
       <Dialog open={!!selectedEntry} onOpenChange={(open) => !open && setSelectedEntry(null)}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
           {selectedEntry && (
             <>
               <DialogHeader>
                 <div className="flex items-center gap-3 mb-2">
                   {getRankIcon(selectedRank)}
-                  <DialogTitle className="text-2xl">Leaderboard Entry</DialogTitle>
+                  <DialogTitle className="text-2xl">Leaderboard Entry Details</DialogTitle>
                 </div>
                 <DialogDescription>
                   Submitted on {new Date(selectedEntry.timestamp).toLocaleDateString("en-US", {
@@ -218,22 +217,23 @@ export default function Leaderboard({ refreshTrigger }: { refreshTrigger?: numbe
 
               <div className="space-y-6 mt-4">
                 {/* Score Display */}
-                <div className="flex items-center justify-center">
+                <div className="flex items-center justify-center py-4">
                   <div className="text-center">
-                    <p className="text-sm text-muted-foreground mb-2">Score</p>
-                    <p className={`text-6xl font-bold ${getScoreColor(selectedEntry.score)}`}>
+                    <p className="text-sm font-medium text-muted-foreground mb-2 uppercase tracking-wide">Score</p>
+                    <p className={`text-7xl font-bold ${getScoreColor(selectedEntry.score)}`}>
                       {selectedEntry.score}
                     </p>
+                    <p className="text-xs text-muted-foreground mt-2">out of 100</p>
                   </div>
                 </div>
 
-                {/* Image */}
+                {/* Image - Large Display */}
                 {selectedEntry.imageUrl && (
-                  <div className="relative w-full aspect-video overflow-hidden rounded-lg border border-border">
+                  <div className="relative w-full min-h-[400px] max-h-[600px] overflow-hidden rounded-xl border-2 border-border bg-muted flex items-center justify-center">
                     <img
                       src={selectedEntry.imageUrl || "/placeholder.svg"}
                       alt="Entry"
-                      className="w-full h-full object-contain bg-muted"
+                      className="max-w-full max-h-full object-contain"
                       onError={(e) => {
                         e.currentTarget.src = "/placeholder.svg?height=400&width=600"
                       }}
@@ -243,38 +243,42 @@ export default function Leaderboard({ refreshTrigger }: { refreshTrigger?: numbe
 
                 {/* User Info */}
                 {selectedEntry.username && (
-                  <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
-                    <User className="h-5 w-5" />
+                  <div className="flex items-center gap-3 p-4 bg-muted/50 rounded-lg border border-border">
+                    <div className="p-2 bg-primary/10 rounded-full">
+                      <User className="h-6 w-6 text-primary" />
+                    </div>
                     <div>
-                      <p className="text-xs text-muted-foreground">Submitted by</p>
-                      <p className="font-semibold">{selectedEntry.username}</p>
+                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Submitted by</p>
+                      <p className="text-lg font-semibold text-foreground">{selectedEntry.username}</p>
                     </div>
                   </div>
                 )}
 
                 {/* Description */}
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-2">Description</p>
-                  <p className="text-foreground leading-relaxed">{selectedEntry.description}</p>
-                </div>
+                {selectedEntry.description && (
+                  <div className="p-4 bg-accent/30 rounded-lg border border-border">
+                    <p className="text-sm font-medium text-muted-foreground mb-2 uppercase tracking-wide">Description</p>
+                    <p className="text-base text-foreground leading-relaxed">{selectedEntry.description}</p>
+                  </div>
+                )}
 
                 {/* Message */}
                 {selectedEntry.message && (
-                  <div className="border-l-4 border-primary pl-4 py-2 bg-accent/50 rounded-r-lg">
-                    <p className="text-sm font-medium text-muted-foreground mb-1">AI Evaluation</p>
-                    <p className="italic text-foreground">"{selectedEntry.message}"</p>
+                  <div className="border-l-4 border-primary pl-6 py-4 bg-primary/5 rounded-r-lg">
+                    <p className="text-sm font-semibold text-primary mb-2 uppercase tracking-wide">AI Consensus Evaluation</p>
+                    <p className="text-lg italic text-foreground leading-relaxed">"{selectedEntry.message}"</p>
                   </div>
                 )}
 
                 {/* Tags */}
                 {selectedEntry.tags && selectedEntry.tags.length > 0 && (
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground mb-2">Tags</p>
+                  <div className="p-4 bg-muted/30 rounded-lg border border-border">
+                    <p className="text-sm font-medium text-muted-foreground mb-3 uppercase tracking-wide">Categories</p>
                     <div className="flex flex-wrap gap-2">
                       {selectedEntry.tags.map((tag, i) => (
                         <span
                           key={i}
-                          className="rounded-full bg-primary/10 border border-primary/20 px-3 py-1 text-sm font-medium text-primary"
+                          className="rounded-full bg-primary/10 border border-primary/30 px-4 py-2 text-sm font-semibold text-primary"
                         >
                           {tag}
                         </span>
