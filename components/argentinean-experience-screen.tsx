@@ -383,7 +383,7 @@ export default function ArgentineanExperienceScreen() {
             Proof of Argentinean Experience
           </h1>
           <p className="mt-2 text-sm sm:text-base text-muted-foreground">
-            Evaluate how Argentine your experience is using artificial intelligence
+            Evaluate how Argentine your experience is using blockchain and artificial intelligence
           </p>
         </div>
       </header>
@@ -699,7 +699,7 @@ export default function ArgentineanExperienceScreen() {
                           </div>
                         </div>
                         <div>
-                          <label className="mb-1 block text-xs font-medium text-muted-foreground">Execution</label>
+                          <label className="mb-1 block text-sm font-medium text-muted-foreground">Execution</label>
                           <div
                             className={`inline-flex items-center rounded-full px-3 py-1.5 text-xs font-medium ${transactionDetails.execution === "SUCCESS"
                               ? "bg-success/10 text-success"
