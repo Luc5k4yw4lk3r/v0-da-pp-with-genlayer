@@ -202,6 +202,7 @@ export default function ArgentineanExperienceScreen() {
         console.log("[v0] Auto-saving to Redis...")
         await autoSaveToLeaderboard(
           evaluationResult.score,
+          evaluationResult.message,
           validTracks,
           {
             transactionHash: txHash,
@@ -235,6 +236,7 @@ export default function ArgentineanExperienceScreen() {
 
   const autoSaveToLeaderboard = async (
     score: number,
+    message: string,
     tracks: Track[],
     consensusData?: { transactionHash?: string; transactionDetails?: TransactionDetails }
   ) => {
@@ -258,7 +260,7 @@ export default function ArgentineanExperienceScreen() {
       const entry: LeaderboardEntry = {
         score,
         description,
-        message: result?.message,
+        message: message || undefined,
         imageUrl: blobImageUrl || undefined,
         username: username || undefined,
         email: email || undefined,
@@ -544,9 +546,9 @@ export default function ArgentineanExperienceScreen() {
                     </div>
                   </div>
 
-                  <Button 
-                    type="submit" 
-                    disabled={!description || evaluating || savingToLeaderboard} 
+                  <Button
+                    type="submit"
+                    disabled={!description || evaluating || savingToLeaderboard}
                     className="w-full bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 hover:from-blue-700 hover:via-purple-700 hover:to-pink-700 text-white font-bold text-lg py-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
                   >
                     {evaluating || savingToLeaderboard ? (

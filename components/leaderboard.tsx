@@ -159,9 +159,10 @@ export default function Leaderboard({ refreshTrigger }: { refreshTrigger?: numbe
                           </div>
                           <p className="text-sm text-foreground line-clamp-2">{entry.description}</p>
                           {entry.message && (
-                            <p className="mt-2 text-xs italic text-muted-foreground border-l-2 border-accent pl-2">
-                              "{entry.message}"
-                            </p>
+                            <div className="mt-2 rounded-md bg-primary/5 border-l-2 border-primary pl-3 py-1.5">
+                              <p className="text-xs font-medium text-primary/80 mb-0.5">AI Consensus:</p>
+                              <p className="text-xs italic text-foreground">"{entry.message}"</p>
+                            </div>
                           )}
                           {entry.tags && entry.tags.length > 0 && (
                             <div className="mt-2 flex flex-wrap gap-1">
