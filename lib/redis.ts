@@ -122,26 +122,21 @@ export async function getLeaderboard(track: Track): Promise<LeaderboardEntry[]> 
         return []
       }
 
-      // Calculate the range to get only the top N entries (highest scores)
-      // We want the last MAX_ENTRIES_PER_TRACK elements
-      const numToGet = Math.min(count, MAX_ENTRIES_PER_TRACK)
-      const start = Math.max(0, count - numToGet)
-      const end = count - 1
-
-      // Validate indices
-      if (start < 0 || end < 0 || start > end) {
-        console.error("[v0] Invalid range calculated:", { start, end, count, numToGet })
-        return []
-      }
-
-      // Use zrange to get only the entries we need (in ascending order by score)
-      // Then we'll reverse to get descending order (highest score first)
+      // Use zrange to get entries (in ascending order by score)
+      // Then we'll take the last N and reverse to get descending order
       let entries: any
       try {
-        // Only get the last N entries we need (not all entries)
-        // This reduces the number of requests and data transferred
-        // Ensure we pass valid integers
-        entries = await redis.zrange(key, Math.floor(start), Math.floor(end))
+        // If we have few elements, get all of them (more reliable)
+        // If we have many, get only what we need to avoid rate limiting
+        if (count <= MAX_ENTRIES_PER_TRACK) {
+          // Get all elements when count is small (more reliable)
+          entries = await redis.zrange(key, 0, -1)
+        } else {
+          // Get only the last MAX_ENTRIES_PER_TRACK elements when count is large
+          const start = count - MAX_ENTRIES_PER_TRACK
+          const end = count - 1
+          entries = await redis.zrange(key, start, end)
+        }
 
         // Ensure entries is an array
         if (!Array.isArray(entries)) {
@@ -149,9 +144,10 @@ export async function getLeaderboard(track: Track): Promise<LeaderboardEntry[]> 
           return []
         }
 
-        // Reverse to get descending order (highest to lowest score)
+        // Take only the last MAX_ENTRIES_PER_TRACK elements and reverse
+        // (in case we got more than expected)
         if (entries.length > 0) {
-          entries = entries.reverse()
+          entries = entries.slice(-MAX_ENTRIES_PER_TRACK).reverse()
         }
       } catch (zrangeError) {
         console.error("[v0] zrange error:", serializeError(zrangeError))

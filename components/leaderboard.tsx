@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useRef, useMemo, useCallback } from "react"
+import { useEffect, useState, useCallback } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Trophy, Medal, Award, User, Maximize2 } from 'lucide-react'
@@ -29,7 +29,6 @@ export default function Leaderboard({ refreshTrigger }: { refreshTrigger?: numbe
   const [defaultTab] = useState(() => TRACKS[Math.floor(Math.random() * TRACKS.length)])
   const [selectedEntry, setSelectedEntry] = useState<LeaderboardEntry | null>(null)
   const [selectedRank, setSelectedRank] = useState<number>(0)
-  const intervalRef = useRef<NodeJS.Timeout | null>(null)
 
   const fetchLeaderboards = useCallback(async () => {
     try {
@@ -43,24 +42,14 @@ export default function Leaderboard({ refreshTrigger }: { refreshTrigger?: numbe
     }
   }, [])
 
+  // Fetch inicial cuando se monta el componente
   useEffect(() => {
     fetchLeaderboards()
-
-    // Polling cada 5 segundos para actualizaciones automáticas
-    intervalRef.current = setInterval(() => {
-      fetchLeaderboards()
-    }, 5000)
-
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current)
-      }
-    }
   }, [fetchLeaderboards])
 
-  // Refrescar cuando cambie el trigger externo
+  // Refrescar cuando cambie el trigger externo (después de evaluar experiencia)
   useEffect(() => {
-    if (refreshTrigger !== undefined) {
+    if (refreshTrigger !== undefined && refreshTrigger > 0) {
       fetchLeaderboards()
     }
   }, [refreshTrigger, fetchLeaderboards])
