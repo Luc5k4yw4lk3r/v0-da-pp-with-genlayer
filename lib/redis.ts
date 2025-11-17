@@ -122,14 +122,26 @@ export async function getLeaderboard(track: Track): Promise<LeaderboardEntry[]> 
         return []
       }
 
-      // Use zrange to get ALL entries (in ascending order by score)
-      // Then we'll take the last N and reverse to get descending order
-      // This avoids issues with index calculation
+      // Calculate the range to get only the top N entries (highest scores)
+      // We want the last MAX_ENTRIES_PER_TRACK elements
+      const numToGet = Math.min(count, MAX_ENTRIES_PER_TRACK)
+      const start = Math.max(0, count - numToGet)
+      const end = count - 1
+
+      // Validate indices
+      if (start < 0 || end < 0 || start > end) {
+        console.error("[v0] Invalid range calculated:", { start, end, count, numToGet })
+        return []
+      }
+
+      // Use zrange to get only the entries we need (in ascending order by score)
+      // Then we'll reverse to get descending order (highest score first)
       let entries: any
       try {
-        // Get all entries (we'll slice to get the last N)
-        // Using -1 as end index to get all elements
-        entries = await redis.zrange(key, 0, -1)
+        // Only get the last N entries we need (not all entries)
+        // This reduces the number of requests and data transferred
+        // Ensure we pass valid integers
+        entries = await redis.zrange(key, Math.floor(start), Math.floor(end))
 
         // Ensure entries is an array
         if (!Array.isArray(entries)) {
@@ -137,10 +149,9 @@ export async function getLeaderboard(track: Track): Promise<LeaderboardEntry[]> 
           return []
         }
 
-        // Take the last MAX_ENTRIES_PER_TRACK elements (highest scores)
-        // and reverse to get descending order
+        // Reverse to get descending order (highest to lowest score)
         if (entries.length > 0) {
-          entries = entries.slice(-MAX_ENTRIES_PER_TRACK).reverse()
+          entries = entries.reverse()
         }
       } catch (zrangeError) {
         console.error("[v0] zrange error:", serializeError(zrangeError))
