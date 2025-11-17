@@ -61,6 +61,53 @@ export default function ArgentineanExperienceScreen() {
 
       <main className="mx-auto max-w-7xl px-3 sm:px-4 lg:px-8 py-8 sm:py-12 lg:py-16 bg-black">
         <Leaderboard refreshTrigger={leaderboardRefreshTrigger} />
+        
+        {/* GOT A PRIME CUT? and GO VEGGIE Sections */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-16">
+          {/* GOT A PRIME CUT? Section */}
+          <div 
+            className="relative overflow-hidden rounded-2xl border-2 border-orange-500/30 bg-gradient-to-br from-zinc-900 to-black p-8 sm:p-12 cursor-pointer transition-all hover:border-orange-500/60 hover:scale-[1.02] group"
+            onClick={() => setIsEvaluateModalOpen(true)}
+          >
+            <div className="relative z-10">
+              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-red-500 mb-4 uppercase tracking-tight">
+                GOT A PRIME CUT?
+              </h2>
+              <p className="text-base sm:text-lg text-white/80 mb-6 leading-relaxed">
+                Share your best steak experience and let our AI jury evaluate it. Upload a photo and compete for the top spot on the leaderboard!
+              </p>
+              <div className="flex items-center gap-2 text-orange-400 font-semibold group-hover:gap-4 transition-all">
+                <span>Submit Your Experience</span>
+                <ChevronRight className="h-5 w-5" />
+              </div>
+            </div>
+            
+            {/* Decorative gradient overlay */}
+            <div className="absolute inset-0 bg-gradient-to-tr from-orange-600/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+          </div>
+
+          {/* GO VEGGIE Section */}
+          <div 
+            className="relative overflow-hidden rounded-2xl border-2 border-green-500/30 bg-gradient-to-br from-zinc-900 to-black p-8 sm:p-12 cursor-pointer transition-all hover:border-green-500/60 hover:scale-[1.02] group"
+            onClick={() => setIsAboutModalOpen(true)}
+          >
+            <div className="relative z-10">
+              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-500 mb-4 uppercase tracking-tight">
+                GO VEGGIE
+              </h2>
+              <p className="text-base sm:text-lg text-white/80 mb-6 leading-relaxed">
+                Not a meat lover? Learn more about how this AI-powered proof system works and explore the technology behind it.
+              </p>
+              <div className="flex items-center gap-2 text-green-400 font-semibold group-hover:gap-4 transition-all">
+                <span>Learn More About This Project</span>
+                <ChevronRight className="h-5 w-5" />
+              </div>
+            </div>
+            
+            {/* Decorative gradient overlay */}
+            <div className="absolute inset-0 bg-gradient-to-tr from-green-600/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+          </div>
+        </div>
       </main>
 
       <Button
