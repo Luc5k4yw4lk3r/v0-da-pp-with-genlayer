@@ -9,10 +9,11 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Loader2, Upload, X, ImageIcon, Copy, CheckCircle2, XCircle, ChevronRight, ChevronDown } from 'lucide-react'
+import { Loader2, Upload, X, ImageIcon, Copy, CheckCircle2, XCircle, ChevronRight, ChevronDown, HelpCircle } from 'lucide-react'
 import type { LeaderboardEntry, Track } from "@/lib/redis"
 import { TRACKS } from "@/lib/redis"
 import Leaderboard from "./leaderboard"
+import AboutProjectModal from "./about-project-modal"
 
 const contractAddress = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || "0x9F8f36bb4641951d27d7185CCf37e68BbDA184Fb"
 
@@ -53,6 +54,8 @@ export default function ArgentineanExperienceScreen() {
   const [showFullTransactionData, setShowFullTransactionData] = useState(false)
 
   const [leaderboardRefreshTrigger, setLeaderboardRefreshTrigger] = useState(0)
+
+  const [isAboutModalOpen, setIsAboutModalOpen] = useState(false)
 
   const proofOfExperience = new ProofOfArgentineanExperience(contractAddress)
 
@@ -387,31 +390,6 @@ export default function ArgentineanExperienceScreen() {
           </p>
         </div>
       </header>
-
-      <div className="border-b border-border/50 bg-gradient-to-br from-primary/5 via-secondary/5 to-accent/5">
-        <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-          <Card className="border-primary/20 bg-card/90 backdrop-blur-sm shadow-lg">
-            <CardContent className="pt-6">
-              <h2 className="text-lg font-bold mb-3 bg-gradient-to-r from-primary to-secondary bg-clip-text text-primary text-primary">
-                About This Project
-              </h2>
-              <p className="text-sm text-muted-foreground mb-3">
-                <strong>Proof of Steak</strong> is a <strong>decentralized application (dApp)</strong> that invites users to <strong>upload photos</strong> showcasing <strong>authentic Argentine cultural experiences</strong> — with a <strong>special highlight</strong> on the <strong>iconic steak and asado tradition</strong> — and evaluates how <strong>"Argentinean"</strong> each submission appears using <strong>GenLayer's decentralized AI consensus</strong> (<strong>scoring 0–100</strong>).
-              </p>
-              <p className="text-sm text-muted-foreground mb-3">
-                Photos are <strong>ranked</strong> on <strong>public leaderboards</strong> across themed <strong>tracks</strong> such as <strong>food</strong>, <strong>customs</strong>, <strong>sports</strong>, <strong>touristic spots</strong>, <strong>crypto & community</strong>, among others. The platform operates in a <strong>transparent</strong> and <strong>trustless</strong> manner, leveraging <strong>GenLayer's consensus</strong> as a <strong>"digital court"</strong> where <strong>validator nodes</strong> powered by <strong>diverse AI models</strong> collectively decide on <strong>subjective cultural scoring</strong> — reducing <strong>bias</strong> and enabling <strong>fair</strong>, <strong>crowdsourced-style cultural evaluation</strong>.
-              </p>
-              <p className="text-sm text-muted-foreground mb-3">
-                To celebrate <strong>Argentina's steak heritage</strong>, the <strong>top-ranked steak photo</strong> will <strong>win an invitation to an asado for two people</strong>.
-              </p>
-              <p className="text-sm text-muted-foreground">
-                We are <strong>actively seeking sponsors</strong> for <strong>categories</strong>, <strong>rewards</strong>, and <strong>special tracks</strong>.<br />
-                For <strong>collaboration</strong>, <strong>questions</strong>, or <strong>partnership proposals</strong>, contact: <strong>Twitter/X: @luck_loce</strong>
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
 
       <main className="mx-auto max-w-7xl px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8">
         <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
@@ -876,6 +854,17 @@ export default function ArgentineanExperienceScreen() {
           </div>
         </div>
       </main>
+
+      <Button
+        onClick={() => setIsAboutModalOpen(true)}
+        className="fixed right-6 bottom-6 h-14 w-14 rounded-full shadow-lg z-40 bg-primary hover:bg-primary/90"
+        size="icon"
+      >
+        <HelpCircle className="h-6 w-6" />
+        <span className="sr-only">About this project</span>
+      </Button>
+
+      <AboutProjectModal open={isAboutModalOpen} onOpenChange={setIsAboutModalOpen} />
 
       <footer className="border-t border-border/50 bg-gradient-to-r from-primary/5 via-secondary/5 to-accent/5 mt-12">
         <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
