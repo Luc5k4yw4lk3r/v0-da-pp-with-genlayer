@@ -109,14 +109,16 @@ export async function getLeaderboard(track: Track): Promise<LeaderboardEntry[]> 
     try {
       const exists = await redis.exists(key)
       console.log("[v0] Key exists check:", { key, exists })
-      
+
       if (exists === 0) {
         console.log("[v0] Key does not exist yet, returning empty array:", key)
         return []
       }
 
-      const entries = await redis.zrange(key, 0, MAX_ENTRIES_PER_TRACK - 1)
-      
+      const entries = await redis.zrange(key, 0, MAX_ENTRIES_PER_TRACK - 1, {
+        rev: true,
+      })
+
       console.log("[v0] zrange result type:", typeof entries, "isArray:", Array.isArray(entries))
 
       if (!entries) {
@@ -128,7 +130,7 @@ export async function getLeaderboard(track: Track): Promise<LeaderboardEntry[]> 
         console.log("[v0] zrange returned non-array:", entries)
         return []
       }
-      
+
       if (entries.length === 0) {
         console.log("[v0] zrange returned empty array")
         return []
@@ -153,12 +155,22 @@ export async function getLeaderboard(track: Track): Promise<LeaderboardEntry[]> 
         })
         .filter((entry): entry is LeaderboardEntry => entry !== null)
 
-      return parsedEntries.reverse()
+      return parsedEntries
     } catch (redisError) {
+      const errorMessage = redisError instanceof Error
+        ? redisError.message
+        : String(redisError)
+      const errorStack = redisError instanceof Error
+        ? redisError.stack
+        : undefined
+
       console.error("[v0] Redis operation error:", {
         track,
         key,
-        error: serializeError(redisError)
+        errorMessage,
+        errorStack,
+        errorType: typeof redisError,
+        errorString: serializeError(redisError)
       })
       return []
     }

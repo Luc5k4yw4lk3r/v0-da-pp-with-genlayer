@@ -34,6 +34,7 @@ Analyze this image and generate a JSON with the following structure:
    Example: "Group of friends drinking mate at the waterfront with a view of the river."
 
 2. **tags**: Array of detected categories. You must use EXACTLY one of these values (respecting capitalization and spaces):
+   - "Steak" → steak, asado, grilled meat, Argentine barbecue, parrilla, bife de chorizo, entraña, asado argentino, beef cuts, meat grilling
    - "food" → foods, typical drinks, barbecue, mate, empanadas, dulce de leche
    - "traditions" → gestures, mates, hugs, gatherings, after-dinner conversations, asados, customs
    - "Cultural shocks" → funny situations, contrasts or rare customs
