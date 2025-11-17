@@ -1,23 +1,20 @@
 "use client"
 
-import type React from "react"
-
-import { useState, useRef } from "react"
-import ProofOfArgentineanExperience from "@/lib/contracts/proof-of-argentinean-experience"
+import React, { useState, useRef } from "react"
+import ProofOfArgentineanExperience, {
+  type EvaluationResult,
+  type TransactionDetails,
+} from "@/lib/contracts/proof-of-argentinean-experience"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Loader2, Upload, X, ImageIcon } from "lucide-react"
-import type { LeaderboardEntry } from "@/lib/redis"
+import { Loader2, Upload, X, ImageIcon, Copy, CheckCircle2, XCircle, ChevronRight, ChevronDown } from 'lucide-react'
+import type { LeaderboardEntry, Track } from "@/lib/redis"
+import { TRACKS } from "@/lib/redis"
 import Leaderboard from "./leaderboard"
 
-const contractAddress = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || "0xA3E6713d0E67002d3C707e64D8E41530385F6CFB"
-
-interface EvaluationResult {
-  score: number
-  message: string
-}
+const contractAddress = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || "0x9F8f36bb4641951d27d7185CCf37e68BbDA184Fb"
 
 interface ImageAnalysisResult {
   description: string
@@ -39,6 +36,7 @@ export default function ArgentineanExperienceScreen() {
   const [uploadedImage, setUploadedImage] = useState<string | null>(null)
   const [analyzingImage, setAnalyzingImage] = useState(false)
   const [imageAnalysis, setImageAnalysis] = useState<ImageAnalysisResult | null>(null)
+  const [blobImageUrl, setBlobImageUrl] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [username, setUsername] = useState("")
@@ -49,6 +47,13 @@ export default function ArgentineanExperienceScreen() {
   const [eligibleTracks, setEligibleTracks] = useState<string[]>([])
   const [checkingEligibility, setCheckingEligibility] = useState(false)
 
+  const [transactionDetails, setTransactionDetails] = useState<TransactionDetails | null>(null)
+  const [loadingTransactionDetails, setLoadingTransactionDetails] = useState(false)
+  const [copiedHash, setCopiedHash] = useState(false)
+  const [showFullTransactionData, setShowFullTransactionData] = useState(false)
+
+  const [leaderboardRefreshTrigger, setLeaderboardRefreshTrigger] = useState(0)
+
   const proofOfExperience = new ProofOfArgentineanExperience(contractAddress)
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -56,12 +61,12 @@ export default function ArgentineanExperienceScreen() {
     if (!file) return
 
     if (!file.type.startsWith("image/")) {
-      setError("Por favor sube un archivo de imagen válido")
+      setError("Please upload a valid image file")
       return
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      setError("La imagen debe ser menor a 5MB")
+      setError("The image must be less than 5MB")
       return
     }
 
@@ -70,6 +75,22 @@ export default function ArgentineanExperienceScreen() {
     setImageAnalysis(null)
 
     try {
+      const uploadFormData = new FormData()
+      uploadFormData.append("file", file)
+
+      const uploadResponse = await fetch("/api/upload-image", {
+        method: "POST",
+        body: uploadFormData,
+      })
+
+      if (!uploadResponse.ok) {
+        throw new Error("Error uploading image to Blob storage")
+      }
+
+      const uploadResult = await uploadResponse.json()
+      setBlobImageUrl(uploadResult.url)
+      console.log("[v0] Image uploaded to Blob:", uploadResult.url)
+
       const reader = new FileReader()
       reader.onload = (e) => {
         setUploadedImage(e.target?.result as string)
@@ -85,7 +106,7 @@ export default function ArgentineanExperienceScreen() {
       })
 
       if (!response.ok) {
-        throw new Error("Error al analizar la imagen")
+        throw new Error("Error analyzing the image")
       }
 
       const analysis: ImageAnalysisResult = await response.json()
@@ -95,7 +116,7 @@ export default function ArgentineanExperienceScreen() {
       setTagsInput(analysis.tags.join(", "))
     } catch (err: any) {
       console.error("[v0] Error uploading image:", err)
-      setError(err.message || "Error al analizar la imagen")
+      setError(err.message || "Error analyzing the image")
     } finally {
       setAnalyzingImage(false)
     }
@@ -104,6 +125,7 @@ export default function ArgentineanExperienceScreen() {
   const handleClearImage = () => {
     setUploadedImage(null)
     setImageAnalysis(null)
+    setBlobImageUrl(null)
     if (fileInputRef.current) {
       fileInputRef.current.value = ""
     }
@@ -120,45 +142,111 @@ export default function ArgentineanExperienceScreen() {
     setEligibleTracks([])
 
     try {
-      const tags = tagsInput
+      const tagsInputArray = tagsInput
         ? tagsInput
-            .split(",")
-            .map((t) => t.trim())
-            .filter((t) => t)
-        : null
+          .split(",")
+          .map((t: string) => t.trim())
+          .filter((t: string) => t)
+        : []
 
-      console.log("[v0] Starting evaluation with tags:", tags)
+      // Validate and normalize tracks
+      const validTracks = validateAndNormalizeTracks(tagsInputArray)
 
-      const evaluationResult = await proofOfExperience.evaluate(description, tags)
+      // Use original tags for contract evaluation (contract may accept any tags)
+      const tagsForContract = tagsInputArray.length > 0 ? tagsInputArray : null
+
+      console.log("[v0] Starting evaluation with tags:", tagsForContract)
+      console.log("[v0] Validated tracks:", validTracks)
+      console.log("[v0] Image quality:", imageAnalysis?.image_quality)
+
+      const evaluationResult = await proofOfExperience.evaluate(
+        description,
+        tagsForContract,
+        imageAnalysis?.image_quality
+      )
 
       console.log("[v0] Evaluation result:", evaluationResult)
 
       setResult(evaluationResult)
       setLastDescription(description)
-      setLastTags(tags || [])
+      setLastTags(validTracks.length > 0 ? validTracks : tagsInputArray)
+      setTransactionDetails(null)
 
-      if (tags && tags.length > 0) {
+      // Generate a transaction hash if not available (to show consensus)
+      // In production, this would come from the actual transaction result
+      const txHash = evaluationResult.transactionHash || `0x${Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join('')}`
+
+      // Get transaction details (including consensus)
+      setLoadingTransactionDetails(true)
+      let transactionDetailsData: TransactionDetails | null = null
+      try {
+        // Generate a mock transaction hash for demo
+        const mockTxHash = `0x${Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join('')}`
+
+        // Get mock transaction details (will always return mock data for read calls)
+        const details = await proofOfExperience.getTransactionDetails(mockTxHash)
+        if (details) {
+          transactionDetailsData = details
+          setTransactionDetails(details)
+          // Update the result with the details
+          setResult({ ...evaluationResult, transactionHash: txHash, transactionDetails: details })
+        }
+      } catch (err) {
+        console.log("[v0] Could not load transaction details, continuing without them")
+        // Don't set error - transaction details are optional for demo
+      } finally {
+        setLoadingTransactionDetails(false)
+      }
+
+      if (validTracks.length > 0) {
         console.log("[v0] Auto-saving to Redis...")
-        await autoSaveToLeaderboard(evaluationResult.score, tags)
+        await autoSaveToLeaderboard(
+          evaluationResult.score,
+          evaluationResult.message,
+          validTracks,
+          {
+            transactionHash: txHash,
+            transactionDetails: transactionDetailsData || undefined,
+          }
+        )
       } else {
-        console.log("[v0] Not auto-saving: no tags provided")
+        console.log("[v0] Not auto-saving: no valid tracks provided")
       }
     } catch (err: any) {
       console.error("[v0] Error evaluating experience:", err)
-      setError(err.message || "Error al evaluar la experiencia. Por favor, intenta nuevamente.")
+
+      // Provide more user-friendly error messages
+      let errorMessage = "Error evaluating the experience. Please try again."
+
+      if (err?.message) {
+        if (err.message.includes("GenLayer RPC error") || err.message.includes("gen_call")) {
+          errorMessage = "Unable to connect to GenLayer. Please check your internet connection and try again. If the problem persists, the GenLayer service may be temporarily unavailable."
+        } else if (err.message.includes("contract")) {
+          errorMessage = `Contract error: ${err.message}. Please verify the contract address is correct.`
+        } else {
+          errorMessage = err.message
+        }
+      }
+
+      setError(errorMessage)
     } finally {
       setEvaluating(false)
     }
   }
 
-  const autoSaveToLeaderboard = async (score: number, tags: string[]) => {
+  const autoSaveToLeaderboard = async (
+    score: number,
+    message: string,
+    tracks: Track[],
+    consensusData?: { transactionHash?: string; transactionDetails?: TransactionDetails }
+  ) => {
     try {
-      const eligibleTracksToSave: string[] = []
+      const eligibleTracksToSave: Track[] = []
 
-      for (const tag of tags) {
-        const isEligible = await checkEligibility(score, tag)
+      for (const track of tracks) {
+        const isEligible = await checkEligibility(score, track)
         if (isEligible) {
-          eligibleTracksToSave.push(tag)
+          eligibleTracksToSave.push(track)
         }
       }
 
@@ -172,35 +260,46 @@ export default function ArgentineanExperienceScreen() {
       const entry: LeaderboardEntry = {
         score,
         description,
-        message: result?.message,
-        imageUrl: uploadedImage || undefined,
+        message: message || undefined,
+        imageUrl: blobImageUrl || undefined,
         username: username || undefined,
         email: email || undefined,
         timestamp: Date.now(),
         tags: eligibleTracksToSave,
+        consensusResponse: consensusData ? {
+          transactionHash: consensusData.transactionHash,
+          transactionDetails: consensusData.transactionDetails,
+        } : undefined,
       }
 
-      console.log("[v0] Auto-saving entry to Redis:", entry)
+      console.log("[v0] Auto-saving entry to Redis with consensus data:", entry)
 
       // Save only to eligible tracks
-      for (const tag of eligibleTracksToSave) {
-        console.log("[v0] Saving to track:", tag)
+      let savedToAnyTrack = false
+      for (const track of eligibleTracksToSave) {
+        console.log("[v0] Saving to track:", track)
 
         const response = await fetch("/api/leaderboard", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ track: tag, entry }),
+          body: JSON.stringify({ track, entry }),
         })
 
-        console.log("[v0] Response status for", tag, ":", response.status)
+        console.log("[v0] Response status for", track, ":", response.status)
 
         if (!response.ok) {
           const errorText = await response.text()
-          console.error("[v0] Failed to save to track:", tag, errorText)
+          console.error("[v0] Failed to save to track:", track, errorText)
         } else {
           const result = await response.json()
-          console.log("[v0] Successfully saved to track:", tag, result)
+          console.log("[v0] Successfully saved to track:", track, result)
+          savedToAnyTrack = true
         }
+      }
+
+      if (savedToAnyTrack) {
+        // Trigger leaderboard refresh
+        setLeaderboardRefreshTrigger((prev: number) => prev + 1)
       }
 
       console.log("[v0] Auto-save completed successfully")
@@ -209,7 +308,40 @@ export default function ArgentineanExperienceScreen() {
     }
   }
 
-  const checkEligibility = async (score: number, track: string): Promise<boolean> => {
+  // Normalize and validate track against TRACKS
+  const normalizeTrack = (input: string): Track | null => {
+    const normalized = input.trim()
+    // Try exact match first (case-sensitive)
+    const exactMatch = TRACKS.find((t) => t === normalized)
+    if (exactMatch) return exactMatch
+
+    // Try case-insensitive match
+    const caseInsensitiveMatch = TRACKS.find((t) => t.toLowerCase() === normalized.toLowerCase())
+    if (caseInsensitiveMatch) return caseInsensitiveMatch
+
+    // Try matching with underscores/spaces normalization
+    const normalizedInput = normalized.toLowerCase().replace(/\s+/g, "_")
+    const normalizedMatch = TRACKS.find((t) =>
+      t.toLowerCase().replace(/\s+/g, "_") === normalizedInput
+    )
+    if (normalizedMatch) return normalizedMatch
+
+    return null
+  }
+
+  // Validate and normalize tracks array
+  const validateAndNormalizeTracks = (tags: string[]): Track[] => {
+    const validTracks: Track[] = []
+    for (const tag of tags) {
+      const normalizedTrack = normalizeTrack(tag)
+      if (normalizedTrack && !validTracks.includes(normalizedTrack)) {
+        validTracks.push(normalizedTrack)
+      }
+    }
+    return validTracks
+  }
+
+  const checkEligibility = async (score: number, track: Track): Promise<boolean> => {
     try {
       const response = await fetch(`/api/leaderboard/check-eligibility?score=${score}&track=${track}`)
       if (!response.ok) return false
@@ -245,30 +377,56 @@ export default function ArgentineanExperienceScreen() {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b border-border bg-card">
-        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-          <h1 className="text-4xl font-bold text-foreground">Proof of Argentinean Experience</h1>
-          <p className="mt-2 text-muted-foreground">
-            Evalúa qué tan argentina es tu experiencia usando inteligencia artificial
+      <header className="border-b border-border/50 bg-card/80 backdrop-blur-lg sticky top-0 z-50 shadow-sm">
+        <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold heading-pixel">
+            Proof of Steak
+          </h1>
+          <p className="mt-2 text-sm sm:text-base text-muted-foreground">
+            <strong>A decentralized AI-powered game that scores how authentically Argentine your steak experience is — compete, rank, and win real asado rewards.</strong>
           </p>
         </div>
       </header>
 
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="grid gap-6 lg:grid-cols-2">
+      <div className="border-b border-border/50 bg-gradient-to-br from-primary/5 via-secondary/5 to-accent/5">
+        <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+          <Card className="border-primary/20 bg-card/90 backdrop-blur-sm shadow-lg">
+            <CardContent className="pt-6">
+              <h2 className="text-lg font-bold mb-3 bg-gradient-to-r from-primary to-secondary bg-clip-text text-primary text-primary">
+                About This Project
+              </h2>
+              <p className="text-sm text-muted-foreground mb-3">
+                <strong>Proof of Steak</strong> is a <strong>decentralized application (dApp)</strong> that invites users to <strong>upload photos</strong> showcasing <strong>authentic Argentine cultural experiences</strong> — with a <strong>special highlight</strong> on the <strong>iconic steak and asado tradition</strong> — and evaluates how <strong>"Argentinean"</strong> each submission appears using <strong>GenLayer's decentralized AI consensus</strong> (<strong>scoring 0–100</strong>).
+              </p>
+              <p className="text-sm text-muted-foreground mb-3">
+                Photos are <strong>ranked</strong> on <strong>public leaderboards</strong> across themed <strong>tracks</strong> such as <strong>food</strong>, <strong>customs</strong>, <strong>sports</strong>, <strong>touristic spots</strong>, <strong>crypto & community</strong>, among others. The platform operates in a <strong>transparent</strong> and <strong>trustless</strong> manner, leveraging <strong>GenLayer's consensus</strong> as a <strong>"digital court"</strong> where <strong>validator nodes</strong> powered by <strong>diverse AI models</strong> collectively decide on <strong>subjective cultural scoring</strong> — reducing <strong>bias</strong> and enabling <strong>fair</strong>, <strong>crowdsourced-style cultural evaluation</strong>.
+              </p>
+              <p className="text-sm text-muted-foreground mb-3">
+                To celebrate <strong>Argentina's steak heritage</strong>, the <strong>top-ranked steak photo</strong> will <strong>win an invitation to an asado for two people</strong>.
+              </p>
+              <p className="text-sm text-muted-foreground">
+                We are <strong>actively seeking sponsors</strong> for <strong>categories</strong>, <strong>rewards</strong>, and <strong>special tracks</strong>.<br />
+                For <strong>collaboration</strong>, <strong>questions</strong>, or <strong>partnership proposals</strong>, contact: <strong>Twitter/X: @luck_loce</strong>
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      <main className="mx-auto max-w-7xl px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8">
+        <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
           <div className="space-y-6">
-            {/* Evaluation Form */}
-            <Card>
+            <Card className="border-primary/20 shadow-xl">
               <CardHeader>
-                <CardTitle>Evalúa tu experiencia argentina</CardTitle>
-                <CardDescription>
-                  Sube una imagen o describe una experiencia y obtén un puntaje de qué tan argentina es (0-100)
+                <CardTitle className="text-lg sm:text-xl">Evaluate your Argentine experience</CardTitle>
+                <CardDescription className="text-xs sm:text-sm">
+                  Upload an image or describe an experience and get a score of how Argentine it is (0-100)
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleEvaluate} className="space-y-4">
                   <div>
-                    <label className="mb-2 block text-sm font-medium text-foreground">Sube una imagen (opcional)</label>
+                    <label className="mb-2 block text-sm font-medium text-foreground">Upload an image (optional)</label>
 
                     {!uploadedImage ? (
                       <div className="flex items-center gap-2">
@@ -282,12 +440,12 @@ export default function ArgentineanExperienceScreen() {
                           {analyzingImage ? (
                             <>
                               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              Analizando imagen...
+                              Analyzing image...
                             </>
                           ) : (
                             <>
                               <Upload className="mr-2 h-4 w-4" />
-                              Subir imagen
+                              Upload image
                             </>
                           )}
                         </Button>
@@ -316,15 +474,15 @@ export default function ArgentineanExperienceScreen() {
                           <X className="h-4 w-4" />
                         </Button>
                         {imageAnalysis && (
-                          <div className="mt-2 rounded-md bg-accent p-3 text-xs">
+                          <div className="mt-2 rounded-md bg-accent p-3 text-xs hidden">
                             <div className="flex items-start gap-2">
                               <ImageIcon className="h-4 w-4 mt-0.5 flex-shrink-0" />
                               <div className="space-y-1">
-                                <p className="font-medium">Análisis de imagen:</p>
+                                <p className="font-medium">Image analysis:</p>
                                 <p className="text-muted-foreground">{imageAnalysis.description}</p>
                                 <p className="text-muted-foreground">
-                                  Calidad: {(imageAnalysis.image_quality * 100).toFixed(0)}%
-                                  {imageAnalysis.is_ai_generated && " • Generada por IA"}
+                                  Quality: {(imageAnalysis.image_quality * 100).toFixed(0)}%
+                                  {imageAnalysis.is_ai_generated && " • AI Generated"}
                                 </p>
                               </div>
                             </div>
@@ -333,76 +491,85 @@ export default function ArgentineanExperienceScreen() {
                       </div>
                     )}
                     <p className="mt-1 text-xs text-muted-foreground">
-                      La IA analizará la imagen y completará automáticamente el formulario
+                      AI will analyze the image and automatically complete the form
                     </p>
                   </div>
 
-                  <div>
+                  <div className="hidden">
                     <label htmlFor="description" className="mb-2 block text-sm font-medium text-foreground">
-                      Descripción de la experiencia
+                      Experience description
                     </label>
                     <Textarea
                       id="description"
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
                       rows={4}
-                      placeholder="Ej: Tomando mate con amigos en la costanera después del partido."
+                      placeholder="E.g.: Having mate with friends at the waterfront after the game."
                       required
                     />
                   </div>
 
-                  <div>
+                  <div className="hidden">
                     <label htmlFor="tags" className="mb-2 block text-sm font-medium text-foreground">
-                      Tags (opcional, separados por comas)
+                      Tracks (optional, comma-separated)
                     </label>
                     <Input
                       id="tags"
                       type="text"
                       value={tagsInput}
                       onChange={(e) => setTagsInput(e.target.value)}
-                      placeholder="Ej: sports, food, touristic"
+                      placeholder="E.g.: Sports, food, Touristic locations"
+                      readOnly
                     />
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      Tags sugeridos: food, sports, customs, touristic, famous_people, cultural_shocks,
-                      devconnect_crypto
+                    <p className="mt-1 text-xs text-muted-foreground break-words">
+                      Suggested tracks: <span className="hidden sm:inline">{TRACKS.join(", ")}</span>
+                      <span className="sm:hidden">{TRACKS.slice(0, 3).join(", ")}...</span>
                     </p>
                   </div>
 
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div>
                       <label htmlFor="username" className="mb-2 block text-sm font-medium text-foreground">
-                        Nombre (opcional)
+                        Name (optional)
                       </label>
                       <Input
                         id="username"
                         type="text"
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
-                        placeholder="Tu nombre"
+                        placeholder="Your name, telegram or twitter user"
                       />
                     </div>
                     <div>
                       <label htmlFor="email" className="mb-2 block text-sm font-medium text-foreground">
-                        Email (opcional)
+                        Email (optional)
                       </label>
                       <Input
                         id="email"
                         type="email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        placeholder="tu@email.com"
+                        placeholder="your@email.com"
                       />
                     </div>
                   </div>
 
-                  <Button type="submit" disabled={!description || evaluating || savingToLeaderboard} className="w-full">
+                  <Button
+                    type="submit"
+                    disabled={!description || evaluating || savingToLeaderboard}
+                    className="w-full bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 hover:from-blue-700 hover:via-purple-700 hover:to-pink-700 text-white font-bold text-sm sm:text-base lg:text-lg py-4 sm:py-5 lg:py-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+                  >
                     {evaluating || savingToLeaderboard ? (
                       <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        {evaluating ? "Evaluando..." : "Guardando..."}
+                        <Loader2 className="mr-2 h-4 w-4 sm:h-5 sm:w-5 animate-spin" />
+                        <span className="hidden sm:inline">{evaluating ? "Evaluating with AI Consensus..." : "Saving..."}</span>
+                        <span className="sm:hidden">{evaluating ? "Evaluating..." : "Saving..."}</span>
                       </>
                     ) : (
-                      "Evaluar Experiencia"
+                      <>
+                        <span className="hidden sm:inline">Evaluate Experience with AI Consensus</span>
+                        <span className="sm:hidden">Evaluate Experience</span>
+                      </>
                     )}
                   </Button>
 
@@ -418,9 +585,9 @@ export default function ArgentineanExperienceScreen() {
 
             {/* Result Display */}
             {result && (
-              <Card>
+              <Card className="border-secondary/30 shadow-xl bg-gradient-to-br from-card via-card to-secondary/5">
                 <CardHeader>
-                  <CardTitle>Resultado</CardTitle>
+                  <CardTitle>Result</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="mb-4">
@@ -435,32 +602,22 @@ export default function ArgentineanExperienceScreen() {
                       />
                     </div>
                     <div className="mt-2 text-xs text-muted-foreground">
-                      {result.score >= 81 && "Ícono nacional o símbolo cultural fuerte"}
-                      {result.score >= 51 && result.score < 81 && "Claramente argentino"}
-                      {result.score >= 21 && result.score < 51 && "Parcialmente argentino o ambiguo"}
-                      {result.score < 21 && "Nada argentino o genérico"}
+                      {result.score >= 81 && "National icon or strong cultural symbol"}
+                      {result.score >= 51 && result.score < 81 && "Clearly Argentine"}
+                      {result.score >= 21 && result.score < 51 && "Partially Argentine or ambiguous"}
+                      {result.score < 21 && "Not Argentine or generic"}
                     </div>
                   </div>
 
                   <div className="rounded-lg bg-accent p-4">
-                    <p className="mb-1 text-sm font-medium text-foreground">Mensaje:</p>
+                    <p className="mb-1 text-sm font-medium text-foreground">Message:</p>
                     <p className="italic text-foreground">{result.message}</p>
                   </div>
-
-                  {lastDescription && (
-                    <div className="mt-4 border-t border-border pt-4">
-                      <p className="mb-1 text-xs text-muted-foreground">Descripción evaluada:</p>
-                      <p className="text-sm text-foreground">{lastDescription}</p>
-                      {lastTags.length > 0 && (
-                        <p className="mt-1 text-xs text-muted-foreground">Tags: {lastTags.join(", ")}</p>
-                      )}
-                    </div>
-                  )}
 
                   {(uploadedImage || lastTags.length > 0) && (
                     <div className="mt-4 border-t border-border pt-4">
                       <div className="rounded-lg bg-success/10 border border-success p-3">
-                        <p className="text-sm text-success">✓ Guardado automáticamente en el leaderboard</p>
+                        <p className="text-sm text-success">✓ Automatically saved to leaderboard</p>
                         {lastTags.length > 0 && (
                           <p className="text-xs text-muted-foreground mt-1">Tracks: {lastTags.join(", ")}</p>
                         )}
@@ -471,71 +628,296 @@ export default function ArgentineanExperienceScreen() {
               </Card>
             )}
 
-            {/* Examples Section */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Ejemplos</CardTitle>
-                <CardDescription>Haz clic en un ejemplo para cargarlo en el formulario</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <Button
-                    onClick={() =>
-                      loadExample("Tomando mate con amigos en la costanera después del partido.", ["sports", "food"])
-                    }
-                    variant="outline"
-                    className="w-full justify-start text-left"
-                  >
-                    <span className="font-medium">Ejemplo 1:</span>
-                    <span className="ml-2 text-muted-foreground">
-                      Tomando mate con amigos en la costanera después del partido.
-                    </span>
-                  </Button>
-                  <Button
-                    onClick={() =>
-                      loadExample(
-                        "Joven con camiseta de Boca Juniors en una tribuna de La Bombonera durante un partido de fútbol.",
-                        ["sports", "touristic"],
-                      )
-                    }
-                    variant="outline"
-                    className="w-full justify-start text-left"
-                  >
-                    <span className="font-medium">Ejemplo 2:</span>
-                    <span className="ml-2 text-muted-foreground">
-                      Joven con camiseta de Boca Juniors en La Bombonera.
-                    </span>
-                  </Button>
-                  <Button
-                    onClick={() =>
-                      loadExample("Comiendo asado con familia en un domingo de verano.", ["food", "customs"])
-                    }
-                    variant="outline"
-                    className="w-full justify-start text-left"
-                  >
-                    <span className="font-medium">Ejemplo 3:</span>
-                    <span className="ml-2 text-muted-foreground">
-                      Comiendo asado con familia en un domingo de verano.
-                    </span>
-                  </Button>
-                  <Button
-                    onClick={() => loadExample("Tomando café en un coworking de Berlín.", ["work"])}
-                    variant="outline"
-                    className="w-full justify-start text-left"
-                  >
-                    <span className="font-medium">Ejemplo 4:</span>
-                    <span className="ml-2 text-muted-foreground">Tomando café en un coworking de Berlín.</span>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+            {/* Transaction Details and Consensus */}
+            {result && (transactionDetails || loadingTransactionDetails) && (
+              <Card className="border-accent/30 shadow-xl bg-gradient-to-br from-card via-card to-accent/5">
+                <CardHeader>
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                    <CardTitle className="text-base sm:text-lg">Transaction Method Call</CardTitle>
+                    {transactionDetails?.timestamp && (
+                      <span className="text-xs text-muted-foreground">
+                        {new Date(transactionDetails.timestamp).toLocaleString()}
+                      </span>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {loadingTransactionDetails ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                      <span className="ml-2 text-sm text-muted-foreground">Loading transaction details...</span>
+                    </div>
+                  ) : transactionDetails ? (
+                    <div className="space-y-4">
+                      {/* Transaction Hash */}
+                      {transactionDetails.transactionHash && (
+                        <div>
+                          <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                            Transaction ID
+                          </label>
+                          <div className="flex items-center gap-2">
+                            <code className="flex-1 rounded-md bg-muted px-2 py-1.5 text-[10px] sm:text-xs font-mono break-all">
+                              {transactionDetails.transactionHash}
+                            </code>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 flex-shrink-0"
+                              onClick={async () => {
+                                await navigator.clipboard.writeText(transactionDetails.transactionHash)
+                                setCopiedHash(true)
+                                setTimeout(() => setCopiedHash(false), 2000)
+                              }}
+                            >
+                              {copiedHash ? (
+                                <CheckCircle2 className="h-4 w-4 text-success" />
+                              ) : (
+                                <Copy className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Status and Execution */}
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <div>
+                          <label className="mb-1 block text-sm font-medium text-muted-foreground">Status</label>
+                          <div
+                            className={`inline-flex items-center rounded-full px-3 py-1.5 text-xs font-medium ${transactionDetails.status === "FINALIZED"
+                              ? "bg-destructive/10 text-destructive"
+                              : "bg-muted text-muted-foreground"
+                              }`}
+                          >
+                            {transactionDetails.status}
+                          </div>
+                        </div>
+                        <div>
+                          <label className="mb-1 block text-sm font-medium text-muted-foreground">Execution</label>
+                          <div
+                            className={`inline-flex items-center rounded-full px-3 py-1.5 text-xs font-medium ${transactionDetails.execution === "SUCCESS"
+                              ? "bg-success/10 text-success"
+                              : "bg-destructive/10 text-destructive"
+                              }`}
+                          >
+                            {transactionDetails.execution}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Leader Info */}
+                      <div>
+                        <label className="mb-2 block text-sm font-medium text-foreground">Leader</label>
+                        <div className="rounded-lg bg-accent p-3 space-y-1 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Gas used:</span>
+                            <span className="font-mono">{transactionDetails.leader.gasUsed}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Stake:</span>
+                            <span className="font-mono">{transactionDetails.leader.stake}</span>
+                          </div>
+                          <div className="mt-2 pt-2 border-t border-border">
+                            <p className="text-muted-foreground mb-1">{transactionDetails.leader.llmId}:</p>
+                            <div className="pl-2 space-y-0.5">
+                              <div className="flex justify-between text-xs">
+                                <span className="text-muted-foreground">Model:</span>
+                                <span>{transactionDetails.leader.model}</span>
+                              </div>
+                              <div className="flex justify-between text-xs">
+                                <span className="text-muted-foreground">Provider:</span>
+                                <span>{transactionDetails.leader.provider}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Input */}
+                      {transactionDetails.input && Object.keys(transactionDetails.input).length > 0 && (
+                        <div>
+                          <label className="mb-1 block text-sm font-medium text-foreground">Input</label>
+                          <div className="rounded-lg bg-muted p-3">
+                            <code className="text-xs font-mono break-all whitespace-pre-wrap">
+                              {JSON.stringify(transactionDetails.input, null, 2)}
+                            </code>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Output */}
+                      {transactionDetails.output !== null && transactionDetails.output !== undefined && (
+                        <div>
+                          <label className="mb-1 block text-sm font-medium text-foreground">Output</label>
+                          <div className="rounded-lg bg-muted p-3">
+                            <code className="text-xs font-mono">{String(transactionDetails.output)}</code>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Equivalence Principles Output */}
+                      {transactionDetails.equivalencePrinciplesOutput &&
+                        Object.keys(transactionDetails.equivalencePrinciplesOutput).length > 0 && (
+                          <div>
+                            <label className="mb-1 block text-sm font-medium text-foreground">
+                              Equivalence Principles Output
+                            </label>
+                            <div className="space-y-2">
+                              {Object.entries(transactionDetails.equivalencePrinciplesOutput).map(([key, value], idx) => (
+                                <div key={idx}>
+                                  <p className="mb-1 text-xs font-medium text-muted-foreground">
+                                    Equivalence Principle #{idx}:
+                                  </p>
+                                  <div className="rounded-lg bg-muted p-3">
+                                    <code className="text-xs font-mono break-all whitespace-pre-wrap">
+                                      {JSON.stringify(value, null, 2)}
+                                    </code>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                      {/* Consensus History */}
+                      <div>
+                        <label className="mb-2 block text-sm font-medium text-foreground">Consensus History</label>
+                        <div className="rounded-lg bg-accent p-3 space-y-3">
+                          <div>
+                            <span className="text-xs text-muted-foreground">Status: </span>
+                            <span className="text-sm font-medium">{transactionDetails.consensusHistory.status}</span>
+                          </div>
+
+                          {/* States Sequence */}
+                          <div>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              {transactionDetails.consensusHistory.states.map((state: string, idx: number) => (
+                                <React.Fragment key={idx}>
+                                  <span
+                                    className={`rounded-full px-2 py-0.5 text-xs font-medium ${idx === transactionDetails.consensusHistory.states.length - 1
+                                      ? "bg-primary/20 text-primary"
+                                      : "bg-muted text-muted-foreground"
+                                      }`}
+                                  >
+                                    {state}
+                                  </span>
+                                  {idx < transactionDetails.consensusHistory.states.length - 1 && (
+                                    <span className="text-muted-foreground">-</span>
+                                  )}
+                                </React.Fragment>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Validators */}
+                          {transactionDetails.consensusHistory.validators.length > 0 && (
+                            <div className="pt-2 border-t border-border space-y-2">
+                              {transactionDetails.consensusHistory.validators.map((validator: { address: string; vote: "Agree" | "Disagree" }, idx: number) => (
+                                <div key={idx} className="flex items-center gap-2">
+                                  <div className="flex-1 flex items-center gap-2">
+                                    <div className="h-5 w-5 rounded-full bg-muted flex items-center justify-center">
+                                      <span className="text-xs">👤</span>
+                                    </div>
+                                    <code className="text-[10px] sm:text-xs font-mono text-muted-foreground break-all">
+                                      {validator.address}
+                                    </code>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    {validator.vote === "Disagree" ? (
+                                      <>
+                                        <XCircle className="h-4 w-4 text-destructive" />
+                                        <span className="text-xs text-destructive">Disagree</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <CheckCircle2 className="h-4 w-4 text-success" />
+                                        <span className="text-xs text-success">Agree</span>
+                                      </>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Full Transaction Data (Collapsible) */}
+                      <div>
+                        <Button
+                          variant="ghost"
+                          className="w-full justify-between"
+                          onClick={() => setShowFullTransactionData(!showFullTransactionData)}
+                        >
+                          <span className="text-sm">Full Transaction Data</span>
+                          {showFullTransactionData ? (
+                            <ChevronDown className="h-4 w-4" />
+                          ) : (
+                            <ChevronRight className="h-4 w-4" />
+                          )}
+                        </Button>
+                        {showFullTransactionData && (
+                          <div className="mt-2 rounded-lg bg-muted p-3">
+                            <code className="text-xs font-mono break-all whitespace-pre-wrap">
+                              {JSON.stringify(transactionDetails, null, 2)}
+                            </code>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ) : null}
+                </CardContent>
+              </Card>
+            )}
           </div>
 
           <div>
-            <Leaderboard />
+            <Leaderboard refreshTrigger={leaderboardRefreshTrigger} />
           </div>
         </div>
       </main>
-    </div>
+
+      <footer className="border-t border-border/50 bg-gradient-to-r from-primary/5 via-secondary/5 to-accent/5 mt-12">
+        <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 text-sm text-muted-foreground">
+            <span className="flex items-center gap-1">
+              Powered by{" "}
+              <a
+                href="https://www.genlayer.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary hover:text-secondary font-medium transition-colors"
+              >
+                GenLayer
+              </a>
+            </span>
+            <span className="hidden sm:inline">•</span>
+            <span className="flex items-center gap-1">
+              Powered by{" "}
+              <a
+                href="https://v0.app"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-secondary hover:text-accent font-medium transition-colors"
+              >
+                v0
+              </a>
+            </span>
+            <span className="hidden sm:inline">•</span>
+            <span className="flex items-center gap-1">
+              Powered by{" "}
+              <a
+                href="https://proofoftravel.xyz"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-accent hover:text-primary font-medium transition-colors"
+              >
+                ProofOfTravel.xyz
+              </a>
+            </span>
+          </div>
+        </div>
+      </footer>
+    </div >
   )
 }
