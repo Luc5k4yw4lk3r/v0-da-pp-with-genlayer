@@ -115,7 +115,8 @@
     font-weight: 900;
     letter-spacing: -0.05em;
     text-transform: uppercase;
-    font-size: clamp(4rem, 12vw, 9rem);
+    /* Increased font size from 9rem max to 14rem max for larger display */
+    font-size: clamp(5rem, 15vw, 14rem);
     line-height: 0.9;
     background-image: url('/hero-steak-hd.jpg');
     background-size: cover;
