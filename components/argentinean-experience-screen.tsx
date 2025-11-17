@@ -59,7 +59,7 @@ export default function ArgentineanExperienceScreen() {
         </button>
       </header>
 
-      <main className="mx-auto max-w-7xl px-3 sm:px-4 lg:px-8 py-8 sm:py-12 lg:py-16 bg-gradient-to-b from-black to-zinc-900">
+      <main className="mx-auto max-w-7xl px-3 sm:px-4 lg:px-8 py-8 sm:py-12 lg:py-16 bg-black">
         <Leaderboard refreshTrigger={leaderboardRefreshTrigger} />
       </main>
 
