@@ -614,16 +614,6 @@ export default function ArgentineanExperienceScreen() {
                     <p className="italic text-foreground">{result.message}</p>
                   </div>
 
-                  {lastDescription && (
-                    <div className="mt-4 border-t border-border pt-4">
-                      <p className="mb-1 text-xs text-muted-foreground">Evaluated description:</p>
-                      <p className="text-sm text-foreground">{lastDescription}</p>
-                      {lastTags.length > 0 && (
-                        <p className="mt-1 text-xs text-muted-foreground">Tracks: {lastTags.join(", ")}</p>
-                      )}
-                    </div>
-                  )}
-
                   {(uploadedImage || lastTags.length > 0) && (
                     <div className="mt-4 border-t border-border pt-4">
                       <div className="rounded-lg bg-success/10 border border-success p-3">
