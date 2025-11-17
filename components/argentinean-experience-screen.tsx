@@ -495,7 +495,7 @@ export default function ArgentineanExperienceScreen() {
                     </p>
                   </div>
 
-                  <div>
+                  <div className="hidden">
                     <label htmlFor="description" className="mb-2 block text-sm font-medium text-foreground">
                       Experience description
                     </label>
@@ -509,7 +509,7 @@ export default function ArgentineanExperienceScreen() {
                     />
                   </div>
 
-                  <div>
+                  <div className="hidden">
                     <label htmlFor="tags" className="mb-2 block text-sm font-medium text-foreground">
                       Tracks (optional, comma-separated)
                     </label>
@@ -692,7 +692,7 @@ export default function ArgentineanExperienceScreen() {
                       {/* Status and Execution */}
                       <div className="grid gap-3 sm:grid-cols-2">
                         <div>
-                          <label className="mb-1 block text-xs font-medium text-muted-foreground">Status</label>
+                          <label className="mb-1 block text-sm font-medium text-muted-foreground">Status</label>
                           <div
                             className={`inline-flex items-center rounded-full px-3 py-1.5 text-xs font-medium ${transactionDetails.status === "FINALIZED"
                               ? "bg-destructive/10 text-destructive"
