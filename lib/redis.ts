@@ -115,27 +115,37 @@ export async function getLeaderboard(track: Track): Promise<LeaderboardEntry[]> 
         return []
       }
 
-      // Use zrevrange to get entries in descending order (highest score first)
-      // zrevrange returns an array directly, no need for rev option
+      // Use zrange with rev option to get entries in descending order (highest score first)
+      // Upstash Redis doesn't have zrevrange, so we use zrange with rev: true
       let entries: any
       try {
-        entries = await redis.zrevrange(key, 0, MAX_ENTRIES_PER_TRACK - 1)
-      } catch (zrevrangeError) {
-        console.error("[v0] zrevrange error:", serializeError(zrevrangeError))
-        return []
+        // Try zrange with rev option first
+        entries = await redis.zrange(key, 0, MAX_ENTRIES_PER_TRACK - 1, { rev: true })
+      } catch (zrangeError) {
+        // If that fails, try without rev and reverse manually
+        try {
+          console.log("[v0] zrange with rev failed, trying without rev:", serializeError(zrangeError))
+          entries = await redis.zrange(key, 0, MAX_ENTRIES_PER_TRACK - 1)
+          if (Array.isArray(entries)) {
+            entries = entries.reverse()
+          }
+        } catch (fallbackError) {
+          console.error("[v0] zrange error:", serializeError(fallbackError))
+          return []
+        }
       }
 
-      console.log("[v0] zrevrange result type:", typeof entries, "isArray:", Array.isArray(entries))
+      console.log("[v0] zrange result type:", typeof entries, "isArray:", Array.isArray(entries))
 
       // Handle null, undefined, or non-array responses
       if (entries == null) {
-        console.log("[v0] zrevrange returned null/undefined, returning empty")
+        console.log("[v0] zrange returned null/undefined, returning empty")
         return []
       }
 
       // Ensure entries is an array
       if (!Array.isArray(entries)) {
-        console.log("[v0] zrevrange returned non-array, converting:", typeof entries, entries)
+        console.log("[v0] zrange returned non-array, converting:", typeof entries, entries)
         // Try to convert to array if it's iterable
         if (entries && typeof entries === 'object' && 'length' in entries) {
           entries = Array.from(entries)
@@ -145,7 +155,7 @@ export async function getLeaderboard(track: Track): Promise<LeaderboardEntry[]> 
       }
 
       if (entries.length === 0) {
-        console.log("[v0] zrevrange returned empty array")
+        console.log("[v0] zrange returned empty array")
         return []
       }
 
