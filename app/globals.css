@@ -85,6 +85,7 @@
     border-color: var(--border);
     outline-color: var(--ring);
   }
+
   body {
     background-color: var(--background);
     color: var(--foreground);
@@ -110,19 +111,20 @@
 
   /* Adding steak-themed hero text effect */
   .hero-steak-text {
-    font-family: 'Arial Black', 'Arial Bold', sans-serif;
+    font-family: 'Geist', 'Geist Fallback', sans-serif;
     font-weight: 900;
-    letter-spacing: 0.02em;
+    letter-spacing: -0.05em;
     text-transform: uppercase;
-    font-size: clamp(3rem, 12vw, 9rem);
+    font-size: clamp(4rem, 12vw, 9rem);
     line-height: 0.9;
-    background-image: url('/placeholder.svg?height=400&width=600');
+    background-image: url('/hero-steak-hd.jpg');
     background-size: cover;
     background-position: center;
     background-clip: text;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
-    text-shadow: 0 0 80px rgba(255, 140, 0, 0.3);
     filter: drop-shadow(0 4px 20px rgba(0, 0, 0, 0.5));
+    margin: 0;
+    padding: 0;
   }
 }

@@ -33,32 +33,30 @@ export default function ArgentineanExperienceScreen() {
 
   return (
     <div className="min-h-screen bg-black">
-      <header className="relative min-h-[60vh] flex flex-col items-center justify-center px-4 py-12 overflow-hidden">
-        {/* Background gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-b from-black via-black/95 to-black/90" />
-        
-        <div className="relative z-10 text-center max-w-6xl mx-auto">
-          <h1 className="hero-steak-text mb-6">
-            PROOF OF
-            <br />
-            STEAK
+      <header className="relative min-h-screen flex flex-col items-center justify-center px-4 py-12 overflow-hidden bg-black">
+        <div className="relative z-10 text-center w-full">
+          <h1 className="hero-steak-text mb-4">
+            PROOF OF STEAK
           </h1>
-          
-          <p className="text-xl sm:text-2xl md:text-3xl font-bold text-white/90 tracking-wide mb-8 animate-fade-in">
-            DEVCONNECT 2025 • BUENOS AIRES
-          </p>
-          
-          <p className="text-base sm:text-lg text-white/70 max-w-3xl mx-auto leading-relaxed">
-            A decentralized AI-powered game that scores how authentically Argentine your steak experience is — compete, rank, and win real asado rewards.
+
+          <p className="text-lg sm:text-xl md:text-2xl font-medium text-white/80 tracking-wider mb-8">
+            DEVCONNECT 2025 · BUENOS AIRES
           </p>
         </div>
 
         {/* Scroll indicator */}
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce">
+        <button
+          onClick={() => {
+            const main = document.querySelector('main');
+            main?.scrollIntoView({ behavior: 'smooth' });
+          }}
+          className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce cursor-pointer"
+          aria-label="Scroll down"
+        >
           <div className="h-12 w-8 rounded-full border-2 border-white/30 flex items-start justify-center p-2">
             <div className="h-2 w-1 bg-white/50 rounded-full" />
           </div>
-        </div>
+        </button>
       </header>
 
       <main className="mx-auto max-w-7xl px-3 sm:px-4 lg:px-8 py-8 sm:py-12 lg:py-16 bg-gradient-to-b from-black to-zinc-900">
