@@ -106,9 +106,11 @@ export async function getLeaderboard(track: Track): Promise<LeaderboardEntry[]> 
 
     console.log("[v0] Getting leaderboard for:", { track, key })
 
-    let entries
+    let entries: unknown
     try {
       const exists = await redis.exists(key)
+      console.log("[v0] Key exists check:", { key, exists })
+      
       if (exists === 0) {
         console.log("[v0] Key does not exist yet, returning empty array:", key)
         return []
@@ -117,9 +119,21 @@ export async function getLeaderboard(track: Track): Promise<LeaderboardEntry[]> 
       entries = await redis.zrange(key, 0, MAX_ENTRIES_PER_TRACK - 1, {
         rev: true,
       })
+      
+      console.log("[v0] zrange result type:", typeof entries, "isArray:", Array.isArray(entries))
 
-      if (!entries || !Array.isArray(entries)) {
-        console.log("[v0] zrange returned non-array, returning empty:", typeof entries)
+      if (!entries) {
+        console.log("[v0] zrange returned null/undefined, returning empty")
+        return []
+      }
+
+      if (!Array.isArray(entries)) {
+        console.log("[v0] zrange returned non-array:", entries)
+        return []
+      }
+      
+      if (entries.length === 0) {
+        console.log("[v0] zrange returned empty array")
         return []
       }
     } catch (redisError) {
@@ -131,11 +145,7 @@ export async function getLeaderboard(track: Track): Promise<LeaderboardEntry[]> 
       return []
     }
 
-    console.log("[v0] Retrieved entries:", entries?.length || 0)
-
-    if (!entries || entries.length === 0) {
-      return []
-    }
+    console.log("[v0] Retrieved entries:", entries.length)
 
     return entries
       .map((entry) => {
