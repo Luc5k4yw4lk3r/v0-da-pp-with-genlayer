@@ -115,29 +115,32 @@ export async function getLeaderboard(track: Track): Promise<LeaderboardEntry[]> 
         return []
       }
 
-      // Get count first to calculate the correct range for highest scores
+      // Get count first
       const count = await redis.zcard(key)
       if (count === 0) {
         console.log("[v0] Leaderboard is empty")
         return []
       }
 
-      // Calculate range: we want the last MAX_ENTRIES_PER_TRACK elements
-      // Since zrange returns in ascending order, we need the last N elements
-      const start = Math.max(0, count - MAX_ENTRIES_PER_TRACK)
-      const end = count - 1
-
-      // Use zrange to get entries (in ascending order by score)
-      // Then we'll reverse to get descending order (highest score first)
-      // Upstash Redis doesn't support rev option or zrevrange, so we reverse manually
+      // Use zrange to get ALL entries (in ascending order by score)
+      // Then we'll take the last N and reverse to get descending order
+      // This avoids issues with index calculation
       let entries: any
       try {
-        // Get entries from the end of the sorted set (highest scores)
-        entries = await redis.zrange(key, start, end)
+        // Get all entries (we'll slice to get the last N)
+        // Using -1 as end index to get all elements
+        entries = await redis.zrange(key, 0, -1)
 
-        // Reverse to get descending order (highest to lowest score)
-        if (Array.isArray(entries) && entries.length > 0) {
-          entries = entries.reverse()
+        // Ensure entries is an array
+        if (!Array.isArray(entries)) {
+          console.error("[v0] zrange did not return an array:", typeof entries, entries)
+          return []
+        }
+
+        // Take the last MAX_ENTRIES_PER_TRACK elements (highest scores)
+        // and reverse to get descending order
+        if (entries.length > 0) {
+          entries = entries.slice(-MAX_ENTRIES_PER_TRACK).reverse()
         }
       } catch (zrangeError) {
         console.error("[v0] zrange error:", serializeError(zrangeError))
