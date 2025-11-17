@@ -74,7 +74,6 @@
   --sidebar-ring: oklch(0.65 0.25 260);
 }
 
-/* Consolidated font and color configuration into single @theme inline block */
 @theme inline {
   --font-sans: "Geist", "Geist Fallback";
   --font-mono: "Geist Mono", "Geist Mono Fallback";
@@ -87,8 +86,8 @@
     outline-color: var(--ring);
   }
   body {
-    @apply bg-background text-foreground;
-    /* Adding background pattern inspired by DevConnect */
+    background-color: var(--background);
+    color: var(--foreground);
     background-image:
       radial-gradient(circle at 20% 50%, rgba(99, 102, 241, 0.08) 0%, transparent 50%),
       radial-gradient(circle at 80% 80%, rgba(236, 72, 153, 0.08) 0%, transparent 50%),
@@ -97,7 +96,6 @@
   }
 }
 
-/* Adding pixelated heading style similar to DevConnect */
 @layer utilities {
   .heading-pixel {
     font-family: 'Courier New', monospace;
