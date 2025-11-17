@@ -106,7 +106,6 @@ export async function getLeaderboard(track: Track): Promise<LeaderboardEntry[]> 
 
     console.log("[v0] Getting leaderboard for:", { track, key })
 
-    let entries: unknown
     try {
       const exists = await redis.exists(key)
       console.log("[v0] Key exists check:", { key, exists })
@@ -116,26 +115,44 @@ export async function getLeaderboard(track: Track): Promise<LeaderboardEntry[]> 
         return []
       }
 
-      entries = await redis.zrange(key, 0, MAX_ENTRIES_PER_TRACK - 1, {
-        rev: true,
-      })
+      // Use zrevrange directly instead of zrange with {rev: true} to avoid pipeline processing issues
+      const entries = await redis.zrevrange(key, 0, MAX_ENTRIES_PER_TRACK - 1)
       
-      console.log("[v0] zrange result type:", typeof entries, "isArray:", Array.isArray(entries))
+      console.log("[v0] zrevrange result type:", typeof entries, "isArray:", Array.isArray(entries))
 
       if (!entries) {
-        console.log("[v0] zrange returned null/undefined, returning empty")
+        console.log("[v0] zrevrange returned null/undefined, returning empty")
         return []
       }
 
       if (!Array.isArray(entries)) {
-        console.log("[v0] zrange returned non-array:", entries)
+        console.log("[v0] zrevrange returned non-array:", entries)
         return []
       }
       
       if (entries.length === 0) {
-        console.log("[v0] zrange returned empty array")
+        console.log("[v0] zrevrange returned empty array")
         return []
       }
+
+      console.log("[v0] Retrieved entries:", entries.length)
+
+      return entries
+        .map((entry) => {
+          try {
+            if (typeof entry === "object" && entry !== null) {
+              return entry as LeaderboardEntry
+            }
+            return JSON.parse(entry as string) as LeaderboardEntry
+          } catch (parseError) {
+            console.error("[v0] Error parsing entry:", {
+              entry: typeof entry === 'object' ? JSON.stringify(entry) : entry,
+              error: serializeError(parseError)
+            })
+            return null
+          }
+        })
+        .filter((entry): entry is LeaderboardEntry => entry !== null)
     } catch (redisError) {
       console.error("[v0] Redis operation error:", {
         track,
@@ -144,25 +161,6 @@ export async function getLeaderboard(track: Track): Promise<LeaderboardEntry[]> 
       })
       return []
     }
-
-    console.log("[v0] Retrieved entries:", entries.length)
-
-    return entries
-      .map((entry) => {
-        try {
-          if (typeof entry === "object" && entry !== null) {
-            return entry as LeaderboardEntry
-          }
-          return JSON.parse(entry as string) as LeaderboardEntry
-        } catch (parseError) {
-          console.error("[v0] Error parsing entry:", {
-            entry: typeof entry === 'object' ? JSON.stringify(entry) : entry,
-            error: serializeError(parseError)
-          })
-          return null
-        }
-      })
-      .filter((entry): entry is LeaderboardEntry => entry !== null)
   } catch (error) {
     console.error("[v0] Error in getLeaderboard:", {
       track,
