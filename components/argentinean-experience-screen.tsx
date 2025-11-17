@@ -88,7 +88,7 @@ export default function ArgentineanExperienceScreen() {
         onLeaderboardUpdate={() => setLeaderboardRefreshTrigger((prev) => prev + 1)}
       />
 
-      <footer className="border-t border-border/50 bg-gradient-to-r from-primary/5 via-secondary/5 to-accent/5 mt-12">
+      <footer className="bg-black mt-12">
         <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 text-sm text-gray-400">
             <span className="flex items-center gap-1">
@@ -109,7 +109,7 @@ export default function ArgentineanExperienceScreen() {
                 href="https://v0.app"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-red-400 hover:text-red-300 font-medium transition-colors"
+                className="text-orange-400 hover:text-orange-300 font-medium transition-colors"
               >
                 v0
               </a>
@@ -121,7 +121,7 @@ export default function ArgentineanExperienceScreen() {
                 href="https://proofoftravel.xyz"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-pink-400 hover:text-pink-300 font-medium transition-colors"
+                className="text-orange-400 hover:text-orange-300 font-medium transition-colors"
               >
                 ProofOfTravel.xyz
               </a>
