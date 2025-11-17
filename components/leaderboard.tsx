@@ -1,10 +1,11 @@
 "use client"
 
 import { useEffect, useState, useCallback } from "react"
+import { useSearchParams, useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Trophy, Medal, Award, User, Maximize2, Share2 } from 'lucide-react'
-import type { LeaderboardEntry } from "@/lib/redis"
+import type { LeaderboardEntry, Track } from "@/lib/redis"
 import { TRACKS } from "@/lib/redis"
 import {
   Dialog,
@@ -24,11 +25,56 @@ const TabTriggerMemo = ({ track }: { track: string }) => (
 )
 
 export default function Leaderboard({ refreshTrigger }: { refreshTrigger?: number }) {
+  const router = useRouter()
+  const searchParams = useSearchParams()
   const [leaderboards, setLeaderboards] = useState<Record<string, LeaderboardEntry[]>>({})
   const [loading, setLoading] = useState(true)
-  const [defaultTab] = useState(() => TRACKS[Math.floor(Math.random() * TRACKS.length)])
+
+  // Get active tab from URL or default to "Steak"
+  const getInitialTab = useCallback((): Track => {
+    const trackParam = searchParams.get('track')
+    if (trackParam) {
+      // Find matching track (case-insensitive)
+      const matchingTrack = TRACKS.find(
+        (t) => t.toLowerCase() === trackParam.toLowerCase()
+      ) as Track | undefined
+      if (matchingTrack) {
+        return matchingTrack
+      }
+    }
+    // Default to "Steak"
+    return 'Steak' as Track
+  }, [searchParams])
+
+  const [activeTab, setActiveTab] = useState<Track>(getInitialTab)
   const [selectedEntry, setSelectedEntry] = useState<LeaderboardEntry | null>(null)
   const [selectedRank, setSelectedRank] = useState<number>(0)
+
+  // Update URL when tab changes
+  const handleTabChange = useCallback((value: string) => {
+    const track = value as Track
+    setActiveTab(track)
+    // Update URL without page reload
+    const params = new URLSearchParams(searchParams.toString())
+    params.set('track', track)
+    router.push(`?${params.toString()}`, { scroll: false })
+  }, [router, searchParams])
+
+  // Sync with URL changes (e.g., browser back/forward)
+  useEffect(() => {
+    const trackParam = searchParams.get('track')
+    if (trackParam) {
+      const matchingTrack = TRACKS.find(
+        (t) => t.toLowerCase() === trackParam.toLowerCase()
+      ) as Track | undefined
+      if (matchingTrack && matchingTrack !== activeTab) {
+        setActiveTab(matchingTrack)
+      }
+    } else if (activeTab !== 'Steak') {
+      // If no track param and not already on Steak, set to Steak
+      setActiveTab('Steak')
+    }
+  }, [searchParams, activeTab])
 
   const fetchLeaderboards = useCallback(async () => {
     try {
@@ -80,22 +126,24 @@ export default function Leaderboard({ refreshTrigger }: { refreshTrigger?: numbe
   }, [])
 
   const shareToSocialMedia = useCallback((platform: 'twitter' | 'facebook' | 'telegram' | 'instagram', entry: LeaderboardEntry, rank: number) => {
-    const url = typeof window !== 'undefined' ? window.location.href : ''
+    // Build URL with track parameter for better viralization
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin + window.location.pathname : ''
+    const pageUrl = `${baseUrl}?track=${encodeURIComponent(activeTab)}`
     const rankText = rank === 0 ? '🥇 1st' : rank === 1 ? '🥈 2nd' : rank === 2 ? '🥉 3rd' : `#${rank + 1}`
-    const text = `${rankText} place on Proof of Steak leaderboard! Score: ${entry.score}/100 🥩\n\n${entry.description ? entry.description.substring(0, 100) + '...' : 'Check out my authentic Argentine steak experience!'}`
+    const text = `${rankText} place on Proof of Steak leaderboard (${activeTab} track)! Score: ${entry.score}/100 🥩\n\n${entry.description ? entry.description.substring(0, 100) + '...' : 'Check out my authentic Argentine steak experience!'}`
     const imageUrl = entry.imageUrl || ''
 
     let shareUrl = ''
 
     switch (platform) {
       case 'twitter':
-        shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`
+        shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(pageUrl)}`
         break
       case 'facebook':
-        shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&quote=${encodeURIComponent(text)}`
+        shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(pageUrl)}&quote=${encodeURIComponent(text)}`
         break
       case 'telegram':
-        shareUrl = `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`
+        shareUrl = `https://t.me/share/url?url=${encodeURIComponent(pageUrl)}&text=${encodeURIComponent(text)}`
         break
       case 'instagram':
         // Instagram doesn't support direct web sharing, so we'll download the image
@@ -123,7 +171,7 @@ export default function Leaderboard({ refreshTrigger }: { refreshTrigger?: numbe
     if (shareUrl) {
       window.open(shareUrl, '_blank', 'width=600,height=400')
     }
-  }, [])
+  }, [activeTab])
 
   if (loading) {
     return (
@@ -158,7 +206,7 @@ export default function Leaderboard({ refreshTrigger }: { refreshTrigger?: numbe
           </p>
         </CardHeader>
         <CardContent className="p-3 sm:p-6">
-          <Tabs defaultValue={defaultTab} className="w-full">
+          <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
             <TabsList className="inline-flex h-auto w-full flex-wrap gap-1.5 sm:gap-2 bg-transparent p-0 overflow-x-auto justify-center mb-8">
               {TRACKS.map((track) => (
                 <TabTriggerMemo key={track} track={track} />
