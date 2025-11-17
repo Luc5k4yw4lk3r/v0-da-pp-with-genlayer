@@ -32,25 +32,42 @@ export default function ArgentineanExperienceScreen() {
   const [isEvaluateModalOpen, setIsEvaluateModalOpen] = useState(false)
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b border-border/50 bg-card/80 backdrop-blur-lg sticky top-0 z-50 shadow-sm">
-        <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold heading-pixel">
-            Proof of Steak
+    <div className="min-h-screen bg-black">
+      <header className="relative min-h-[60vh] flex flex-col items-center justify-center px-4 py-12 overflow-hidden">
+        {/* Background gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black via-black/95 to-black/90" />
+        
+        <div className="relative z-10 text-center max-w-6xl mx-auto">
+          <h1 className="hero-steak-text mb-6">
+            PROOF OF
+            <br />
+            STEAK
           </h1>
-          <p className="mt-2 text-sm sm:text-base text-muted-foreground">
-            <strong>A decentralized AI-powered game that scores how authentically Argentine your steak experience is — compete, rank, and win real asado rewards.</strong>
+          
+          <p className="text-xl sm:text-2xl md:text-3xl font-bold text-white/90 tracking-wide mb-8 animate-fade-in">
+            DEVCONNECT 2025 • BUENOS AIRES
           </p>
+          
+          <p className="text-base sm:text-lg text-white/70 max-w-3xl mx-auto leading-relaxed">
+            A decentralized AI-powered game that scores how authentically Argentine your steak experience is — compete, rank, and win real asado rewards.
+          </p>
+        </div>
+
+        {/* Scroll indicator */}
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce">
+          <div className="h-12 w-8 rounded-full border-2 border-white/30 flex items-start justify-center p-2">
+            <div className="h-2 w-1 bg-white/50 rounded-full" />
+          </div>
         </div>
       </header>
 
-      <main className="mx-auto max-w-7xl px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8">
+      <main className="mx-auto max-w-7xl px-3 sm:px-4 lg:px-8 py-8 sm:py-12 lg:py-16 bg-gradient-to-b from-black to-zinc-900">
         <Leaderboard refreshTrigger={leaderboardRefreshTrigger} />
       </main>
 
       <Button
         onClick={() => setIsEvaluateModalOpen(true)}
-        className="fixed right-6 bottom-24 h-20 w-20 rounded-full shadow-2xl z-40 bg-gradient-to-br from-blue-500 via-purple-600 to-pink-600 hover:from-blue-400 hover:via-purple-500 hover:to-pink-500 transition-all duration-300 hover:scale-110 hover:shadow-purple-500/50"
+        className="fixed right-6 bottom-24 h-20 w-20 rounded-full shadow-2xl z-40 bg-gradient-to-br from-orange-500 via-red-600 to-pink-600 hover:from-orange-400 hover:via-red-500 hover:to-pink-500 transition-all duration-300 hover:scale-110 hover:shadow-orange-500/50"
         size="icon"
       >
         <Camera className="h-10 w-10 text-white" />
