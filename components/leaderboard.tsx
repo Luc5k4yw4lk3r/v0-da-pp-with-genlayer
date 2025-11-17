@@ -142,7 +142,7 @@ export default function Leaderboard({ refreshTrigger }: { refreshTrigger?: numbe
                             />
                             
                             {/* Gradient overlay for better text visibility */}
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
                             
                             {/* Rank badge - top left */}
                             <div className="absolute top-3 left-3 flex items-center justify-center h-12 w-12 rounded-full bg-black/80 backdrop-blur border-2 border-orange-500/50 shadow-lg">
@@ -163,51 +163,53 @@ export default function Leaderboard({ refreshTrigger }: { refreshTrigger?: numbe
                                 <Maximize2 className="h-4 w-4 text-white" />
                               </div>
                             </div>
+                            
+                            <div className="absolute bottom-0 left-0 right-0 p-4 space-y-2">
+                              {/* Username */}
+                              {entry.username ? (
+                                <p className="font-bold text-white flex items-center gap-2 truncate drop-shadow-lg">
+                                  <User className="h-4 w-4 text-orange-500 flex-shrink-0" />
+                                  <span className="truncate">{entry.username}</span>
+                                </p>
+                              ) : (
+                                <p className="text-sm text-white/60 italic drop-shadow-lg">Anonymous</p>
+                              )}
+                              
+                              {/* AI Message */}
+                              {entry.message && (
+                                <div className="rounded-md bg-black/60 backdrop-blur border border-orange-500/30 p-2">
+                                  <p className="text-xs text-orange-300 line-clamp-2 italic">"{entry.message}"</p>
+                                </div>
+                              )}
+                              
+                              {/* Tags and Date in same row */}
+                              <div className="flex items-center justify-between gap-2">
+                                {/* Tags */}
+                                {entry.tags && entry.tags.length > 0 && (
+                                  <div className="flex flex-wrap gap-1">
+                                    {entry.tags.slice(0, 2).map((tag, i) => (
+                                      <span
+                                        key={i}
+                                        className="rounded-full bg-orange-500/30 backdrop-blur border border-orange-500/40 px-2 py-0.5 text-xs text-orange-200 font-medium"
+                                      >
+                                        {tag}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+                                
+                                {/* Date */}
+                                <p className="text-xs text-white/60 drop-shadow-lg whitespace-nowrap">
+                                  {new Date(entry.timestamp).toLocaleDateString("en-US")}
+                                </p>
+                              </div>
+                            </div>
                           </div>
                         ) : (
                           <div className="relative aspect-[4/3] w-full flex items-center justify-center bg-gradient-to-br from-zinc-800 to-zinc-900">
                             <Trophy className="h-16 w-16 text-orange-500/30" />
                           </div>
                         )}
-                        
-                        {/* Content below image */}
-                        <div className="p-4 space-y-2">
-                          {/* Username */}
-                          {entry.username ? (
-                            <p className="font-bold text-white flex items-center gap-2 truncate">
-                              <User className="h-4 w-4 text-orange-500 flex-shrink-0" />
-                              <span className="truncate">{entry.username}</span>
-                            </p>
-                          ) : (
-                            <p className="text-sm text-white/60 italic">Anonymous</p>
-                          )}
-                          
-                          {/* AI Message */}
-                          {entry.message && (
-                            <div className="rounded-md bg-orange-500/10 border border-orange-500/20 p-2">
-                              <p className="text-xs text-orange-400/90 line-clamp-2 italic">"{entry.message}"</p>
-                            </div>
-                          )}
-                          
-                          {/* Tags */}
-                          {entry.tags && entry.tags.length > 0 && (
-                            <div className="flex flex-wrap gap-1">
-                              {entry.tags.slice(0, 3).map((tag, i) => (
-                                <span
-                                  key={i}
-                                  className="rounded-full bg-orange-500/20 border border-orange-500/30 px-2 py-0.5 text-xs text-orange-300 font-medium"
-                                >
-                                  {tag}
-                                </span>
-                              ))}
-                            </div>
-                          )}
-                          
-                          {/* Date */}
-                          <p className="text-xs text-white/40">
-                            {new Date(entry.timestamp).toLocaleDateString("en-US")}
-                          </p>
-                        </div>
                       </div>
                     ))}
                   </div>
