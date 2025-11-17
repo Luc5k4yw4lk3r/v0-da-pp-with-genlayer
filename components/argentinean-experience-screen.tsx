@@ -383,7 +383,7 @@ export default function ArgentineanExperienceScreen() {
             Proof of Steak
           </h1>
           <p className="mt-2 text-sm sm:text-base text-muted-foreground">
-            A decentralized AI-powered game that scores how authentically Argentine your steak experience is — compete, rank, and win real asado rewards.
+            <strong>A decentralized AI-powered game that scores how authentically Argentine your steak experience is — compete, rank, and win real asado rewards.</strong>
           </p>
         </div>
       </header>
@@ -396,17 +396,17 @@ export default function ArgentineanExperienceScreen() {
                 About This Project
               </h2>
               <p className="text-sm text-muted-foreground mb-3">
-                <strong>Proof of Steak</strong> is a decentralized application that invites users to upload photos showcasing authentic Argentine cultural experiences —with a special highlight on the iconic <strong>steak and asado tradition</strong>— and evaluates how "Argentinean" each submission appears using GenLayer's decentralized AI consensus (scoring 0–100).
+                <strong>Proof of Steak</strong> is a <strong>decentralized application (dApp)</strong> that invites users to <strong>upload photos</strong> showcasing <strong>authentic Argentine cultural experiences</strong> — with a <strong>special highlight</strong> on the <strong>iconic steak and asado tradition</strong> — and evaluates how <strong>"Argentinean"</strong> each submission appears using <strong>GenLayer's decentralized AI consensus</strong> (<strong>scoring 0–100</strong>).
               </p>
               <p className="text-sm text-muted-foreground mb-3">
-                Photos are ranked on public leaderboards across themed <strong>tracks</strong>  such as food, customs, sports, touristic spots, crypto & community, among others. The platform operates transparently and trustlessly, leveraging <strong>GenLayer's consensus as a "digital court"</strong>  where validator nodes powered by diverse AI models collectively decide on subjective cultural scoring —reducing bias and enabling fair, crowdsourced-style cultural evaluation.</strong>
+                Photos are <strong>ranked</strong> on <strong>public leaderboards</strong> across themed <strong>tracks</strong> such as <strong>food</strong>, <strong>customs</strong>, <strong>sports</strong>, <strong>touristic spots</strong>, <strong>crypto & community</strong>, among others. The platform operates in a <strong>transparent</strong> and <strong>trustless</strong> manner, leveraging <strong>GenLayer's consensus</strong> as a <strong>"digital court"</strong> where <strong>validator nodes</strong> powered by <strong>diverse AI models</strong> collectively decide on <strong>subjective cultural scoring</strong> — reducing <strong>bias</strong> and enabling <strong>fair</strong>, <strong>crowdsourced-style cultural evaluation</strong>.
               </p>
               <p className="text-sm text-muted-foreground mb-3">
-                To celebrate Argentina's steak heritage and make things fun, <strong>the top-ranked steak photo will win an invitation to an asado for two people.
+                To celebrate <strong>Argentina's steak heritage</strong>, the <strong>top-ranked steak photo</strong> will <strong>win an invitation to an asado for two people</strong>.
               </p>
               <p className="text-sm text-muted-foreground">
-                <strong>We are actively seeking sponsors</strong> for categories, rewards, and special tracks.
-                For collaboration, questions or partnership proposals, contact: Twitter/X: @luck_loce
+                We are <strong>actively seeking sponsors</strong> for <strong>categories</strong>, <strong>rewards</strong>, and <strong>special tracks</strong>.<br />
+                For <strong>collaboration</strong>, <strong>questions</strong>, or <strong>partnership proposals</strong>, contact: <strong>Twitter/X: @luck_loce</strong>
               </p>
             </CardContent>
           </Card>
@@ -928,6 +928,6 @@ export default function ArgentineanExperienceScreen() {
           </div>
         </div>
       </footer>
-    </div>
+    </div >
   )
 }

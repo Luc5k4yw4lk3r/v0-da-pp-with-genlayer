@@ -18,6 +18,7 @@ export interface LeaderboardEntry {
 
 const TRACKS = [
   "food",
+  "Steak",
   "traditions",
   "Cultural shocks",
   "Touristic locations",
@@ -116,7 +117,7 @@ export async function getLeaderboard(track: Track): Promise<LeaderboardEntry[]> 
       entries = await redis.zrange(key, 0, MAX_ENTRIES_PER_TRACK - 1, {
         rev: true,
       })
-      
+
       if (!entries || !Array.isArray(entries)) {
         console.log("[v0] zrange returned non-array, returning empty:", typeof entries)
         return []
