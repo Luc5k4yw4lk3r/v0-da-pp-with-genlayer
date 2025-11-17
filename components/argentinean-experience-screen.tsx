@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, Suspense } from "react"
 import ProofOfArgentineanExperience, {
   type EvaluationResult,
   type TransactionDetails,
@@ -24,6 +24,14 @@ interface ImageAnalysisResult {
   image_quality: number
   is_ai_generated: boolean
   metadata?: Record<string, any>
+}
+
+function LeaderboardFallback() {
+  return (
+    <div className="flex items-center justify-center py-12">
+      <Loader2 className="h-8 w-8 animate-spin text-orange-500" />
+    </div>
+  )
 }
 
 export default function ArgentineanExperienceScreen() {
@@ -60,7 +68,9 @@ export default function ArgentineanExperienceScreen() {
       </header>
 
       <main className="mx-auto max-w-7xl px-3 sm:px-4 lg:px-8 py-8 sm:py-12 lg:py-16 bg-black">
-        <Leaderboard refreshTrigger={leaderboardRefreshTrigger} />
+        <Suspense fallback={<LeaderboardFallback />}>
+          <Leaderboard refreshTrigger={leaderboardRefreshTrigger} />
+        </Suspense>
         
         {/* GOT A PRIME CUT? and GO VEGGIE Sections */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-16">
