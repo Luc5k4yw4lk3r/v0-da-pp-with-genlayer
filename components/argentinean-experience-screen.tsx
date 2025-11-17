@@ -392,20 +392,20 @@ export default function ArgentineanExperienceScreen() {
         <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
           <Card className="border-primary/20 bg-card/90 backdrop-blur-sm shadow-lg">
             <CardContent className="pt-6">
-              <h2 className="text-lg font-bold mb-3 text-foreground bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+              <h2 className="text-lg font-bold mb-3 bg-gradient-to-r from-primary to-secondary bg-clip-text text-primary text-primary">
                 About This Project
               </h2>
               <p className="text-sm text-muted-foreground mb-3">
-                <strong>Proof of Steak</strong> is a decentralized application that invites users to upload photos showcasing authentic Argentine cultural experiences —with a special highlight on the iconic steak and asado tradition— and evaluates how "Argentinean" each submission appears using GenLayer's decentralized AI consensus (scoring 0–100).
+                <strong>Proof of Steak</strong> is a decentralized application that invites users to upload photos showcasing authentic Argentine cultural experiences —with a special highlight on the iconic <strong>steak and asado tradition</strong>— and evaluates how "Argentinean" each submission appears using GenLayer's decentralized AI consensus (scoring 0–100).
               </p>
               <p className="text-sm text-muted-foreground mb-3">
-                Photos are ranked on public leaderboards across themed tracks such as food, customs, sports, touristic spots, crypto & community, among others. The platform operates transparently and trustlessly, leveraging GenLayer's consensus as a "digital court" where validator nodes powered by diverse AI models collectively decide on subjective cultural scoring —reducing bias and enabling fair, crowdsourced-style cultural evaluation.
+                Photos are ranked on public leaderboards across themed <strong>tracks</strong>  such as food, customs, sports, touristic spots, crypto & community, among others. The platform operates transparently and trustlessly, leveraging <strong>GenLayer's consensus as a "digital court"</strong>  where validator nodes powered by diverse AI models collectively decide on subjective cultural scoring —reducing bias and enabling fair, crowdsourced-style cultural evaluation.</strong>
               </p>
               <p className="text-sm text-muted-foreground mb-3">
-                To celebrate Argentina's steak heritage and make things fun, the top-ranked steak photo will win an invitation to an asado for two people.
+                To celebrate Argentina's steak heritage and make things fun, <strong>the top-ranked steak photo will win an invitation to an asado for two people.
               </p>
               <p className="text-sm text-muted-foreground">
-                We are actively seeking sponsors for categories, rewards, and special tracks.
+                <strong>We are actively seeking sponsors</strong> for categories, rewards, and special tracks.
                 For collaboration, questions or partnership proposals, contact: Twitter/X: @luck_loce
               </p>
             </CardContent>
