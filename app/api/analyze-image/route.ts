@@ -58,7 +58,7 @@ IMPORTANT:
 `
 
     const { object } = await generateObject({
-      model: "anthropic/claude-sonnet-4.5",
+      model: "openai/gpt-4o-mini",
       schema: imageAnalysisSchema,
       messages: [
         {
