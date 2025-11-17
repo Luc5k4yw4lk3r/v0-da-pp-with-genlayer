@@ -115,9 +115,7 @@ export async function getLeaderboard(track: Track): Promise<LeaderboardEntry[]> 
         return []
       }
 
-      const entries = await redis.zrange(key, 0, MAX_ENTRIES_PER_TRACK - 1, {
-        rev: true,
-      })
+      const entries = await redis.zrange(key, 0, MAX_ENTRIES_PER_TRACK - 1)
 
       console.log("[v0] zrange result type:", typeof entries, "isArray:", Array.isArray(entries))
 
@@ -155,7 +153,7 @@ export async function getLeaderboard(track: Track): Promise<LeaderboardEntry[]> 
         })
         .filter((entry): entry is LeaderboardEntry => entry !== null)
 
-      return parsedEntries
+      return parsedEntries.reverse()
     } catch (redisError) {
       const errorMessage = redisError instanceof Error
         ? redisError.message
