@@ -474,7 +474,7 @@ export default function ArgentineanExperienceScreen() {
                           <X className="h-4 w-4" />
                         </Button>
                         {imageAnalysis && (
-                          <div className="mt-2 rounded-md bg-accent p-3 text-xs">
+                          <div className="mt-2 rounded-md bg-accent p-3 text-xs hidden">
                             <div className="flex items-start gap-2">
                               <ImageIcon className="h-4 w-4 mt-0.5 flex-shrink-0" />
                               <div className="space-y-1">
