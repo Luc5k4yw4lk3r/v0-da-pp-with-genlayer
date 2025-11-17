@@ -115,24 +115,33 @@ export async function getLeaderboard(track: Track): Promise<LeaderboardEntry[]> 
         return []
       }
 
-      // Use zrange with rev option to get entries in descending order (highest score first)
-      // Upstash Redis doesn't have zrevrange, so we use zrange with rev: true
+      // Get count first to calculate the correct range for highest scores
+      const count = await redis.zcard(key)
+      if (count === 0) {
+        console.log("[v0] Leaderboard is empty")
+        return []
+      }
+
+      // Calculate range: we want the last MAX_ENTRIES_PER_TRACK elements
+      // Since zrange returns in ascending order, we need the last N elements
+      const start = Math.max(0, count - MAX_ENTRIES_PER_TRACK)
+      const end = count - 1
+
+      // Use zrange to get entries (in ascending order by score)
+      // Then we'll reverse to get descending order (highest score first)
+      // Upstash Redis doesn't support rev option or zrevrange, so we reverse manually
       let entries: any
       try {
-        // Try zrange with rev option first
-        entries = await redis.zrange(key, 0, MAX_ENTRIES_PER_TRACK - 1, { rev: true })
-      } catch (zrangeError) {
-        // If that fails, try without rev and reverse manually
-        try {
-          console.log("[v0] zrange with rev failed, trying without rev:", serializeError(zrangeError))
-          entries = await redis.zrange(key, 0, MAX_ENTRIES_PER_TRACK - 1)
-          if (Array.isArray(entries)) {
-            entries = entries.reverse()
-          }
-        } catch (fallbackError) {
-          console.error("[v0] zrange error:", serializeError(fallbackError))
-          return []
+        // Get entries from the end of the sorted set (highest scores)
+        entries = await redis.zrange(key, start, end)
+
+        // Reverse to get descending order (highest to lowest score)
+        if (Array.isArray(entries) && entries.length > 0) {
+          entries = entries.reverse()
         }
+      } catch (zrangeError) {
+        console.error("[v0] zrange error:", serializeError(zrangeError))
+        return []
       }
 
       console.log("[v0] zrange result type:", typeof entries, "isArray:", Array.isArray(entries))
