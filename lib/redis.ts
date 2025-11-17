@@ -17,8 +17,8 @@ export interface LeaderboardEntry {
 }
 
 const TRACKS = [
-  "food",
   "Steak",
+  "food",
   "traditions",
   "Cultural shocks",
   "Touristic locations",
