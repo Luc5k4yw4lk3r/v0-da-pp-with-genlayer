@@ -857,10 +857,10 @@ export default function ArgentineanExperienceScreen() {
 
       <Button
         onClick={() => setIsAboutModalOpen(true)}
-        className="fixed right-6 bottom-6 h-14 w-14 rounded-full shadow-lg z-40 bg-primary hover:bg-primary/90"
+        className="fixed right-6 bottom-6 h-16 w-16 rounded-full shadow-2xl z-40 bg-gradient-to-br from-cyan-500 via-blue-600 to-blue-700 hover:from-cyan-400 hover:via-blue-500 hover:to-blue-600 transition-all duration-300 hover:scale-110 hover:shadow-cyan-500/50"
         size="icon"
       >
-        <HelpCircle className="h-6 w-6" />
+        <HelpCircle className="h-8 w-8 text-white" />
         <span className="sr-only">About this project</span>
       </Button>
 

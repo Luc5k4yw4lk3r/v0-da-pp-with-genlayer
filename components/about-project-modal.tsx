@@ -16,16 +16,16 @@ interface AboutProjectModalProps {
 export default function AboutProjectModal({ open, onOpenChange }: AboutProjectModalProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto bg-card border-2 border-primary/30">
         <DialogHeader>
-          <DialogTitle className="text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-primary">
+          <DialogTitle className="text-xl font-bold text-primary">
             About This Project
           </DialogTitle>
           <DialogDescription className="sr-only">
             Information about the Proof of Steak project
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-3 text-sm text-muted-foreground">
+        <div className="space-y-3 text-sm text-foreground">
           <p>
             <strong>Proof of Steak</strong> is a <strong>decentralized application (dApp)</strong> that invites users to <strong>upload photos</strong> showcasing <strong>authentic Argentine cultural experiences</strong> — with a <strong>special highlight</strong> on the <strong>iconic steak and asado tradition</strong> — and evaluates how <strong>"Argentinean"</strong> each submission appears using <strong>GenLayer's decentralized AI consensus</strong> (<strong>scoring 0–100</strong>).
           </p>
