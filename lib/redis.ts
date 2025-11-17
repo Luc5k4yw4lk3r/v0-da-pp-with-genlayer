@@ -115,34 +115,53 @@ export async function getLeaderboard(track: Track): Promise<LeaderboardEntry[]> 
         return []
       }
 
-      const entries = await redis.zrange(key, 0, MAX_ENTRIES_PER_TRACK - 1)
-
-      console.log("[v0] zrange result type:", typeof entries, "isArray:", Array.isArray(entries))
-
-      if (!entries) {
-        console.log("[v0] zrange returned null/undefined, returning empty")
+      // Use zrevrange to get entries in descending order (highest score first)
+      // zrevrange returns an array directly, no need for rev option
+      let entries: any
+      try {
+        entries = await redis.zrevrange(key, 0, MAX_ENTRIES_PER_TRACK - 1)
+      } catch (zrevrangeError) {
+        console.error("[v0] zrevrange error:", serializeError(zrevrangeError))
         return []
       }
 
-      if (!Array.isArray(entries)) {
-        console.log("[v0] zrange returned non-array:", entries)
+      console.log("[v0] zrevrange result type:", typeof entries, "isArray:", Array.isArray(entries))
+
+      // Handle null, undefined, or non-array responses
+      if (entries == null) {
+        console.log("[v0] zrevrange returned null/undefined, returning empty")
         return []
+      }
+
+      // Ensure entries is an array
+      if (!Array.isArray(entries)) {
+        console.log("[v0] zrevrange returned non-array, converting:", typeof entries, entries)
+        // Try to convert to array if it's iterable
+        if (entries && typeof entries === 'object' && 'length' in entries) {
+          entries = Array.from(entries)
+        } else {
+          return []
+        }
       }
 
       if (entries.length === 0) {
-        console.log("[v0] zrange returned empty array")
+        console.log("[v0] zrevrange returned empty array")
         return []
       }
 
       console.log("[v0] Retrieved entries:", entries.length)
 
       const parsedEntries = entries
-        .map((entry) => {
+        .map((entry: any) => {
           try {
             if (typeof entry === "object" && entry !== null) {
               return entry as LeaderboardEntry
             }
-            return JSON.parse(entry as string) as LeaderboardEntry
+            if (typeof entry === "string") {
+              return JSON.parse(entry) as LeaderboardEntry
+            }
+            console.warn("[v0] Unexpected entry type:", typeof entry, entry)
+            return null
           } catch (parseError) {
             console.error("[v0] Error parsing entry:", {
               entry: typeof entry === 'object' ? JSON.stringify(entry) : entry,
@@ -153,7 +172,7 @@ export async function getLeaderboard(track: Track): Promise<LeaderboardEntry[]> 
         })
         .filter((entry): entry is LeaderboardEntry => entry !== null)
 
-      return parsedEntries.reverse()
+      return parsedEntries
     } catch (redisError) {
       const errorMessage = redisError instanceof Error
         ? redisError.message
